@@ -1,0 +1,21 @@
+input:
+  recursive: false
+  excel_sheets: all
+  continue_on_error: true
+
+profiling:
+  max_categorical_levels: 10
+  high_missingness_threshold: 0.40
+  sample_values: 5
+
+privacy:
+  include_examples: true
+  mask_potential_identifiers: true
+  mask_potential_sensitive: true
+
+output:
+  overwrite: true
+  write_csv: true
+  write_json: true
+  write_excel: true
+  write_html: true
