@@ -40,7 +40,7 @@ jobs:
           if digest != expected:
               raise SystemExit(f"release archive checksum mismatch: expected {expected}")
           with tarfile.open(archive, mode="r:xz") as bundle:
-              names = set(bundle.getnames())
+              names = {name.removeprefix("./") for name in bundle.getnames()}
           required = {"DESCRIPTION", "README.md", "scripts/run_pipeline.R"}
           missing = sorted(required - names)
           if missing:
