@@ -14,6 +14,10 @@
 - Added reader package/function lineage and richer file-system metadata.
 - Retained all existing CSV/text, Excel, Stata, SAS, SPSS, R, JSON, Arrow/Parquet, and opt-in Python pickle ingestion families.
 - Added tests for the compatibility dictionary, code-label direction, high-cardinality reporting, and separate outputs.
+- Made Excel and Haven ingestion tests robust across current package fixture and `testthat` API versions.
+- Corrected SAS reader argument construction so null catalog and encoding options defer safely to Haven defaults.
+- Reduced bootstrap installation to runtime dependencies while continuing to test optional Arrow and Reticulate support in CI.
+- Added retained CI test-log artifacts and completed a successful full runtime and example-pipeline validation.
 
 ## 0.1.0 - 2026-07-24
 
