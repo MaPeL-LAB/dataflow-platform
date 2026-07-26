@@ -4,84 +4,8 @@ on:
   push:
   pull_request:
 
-permissions:
-  contents: write
-
 jobs:
-  materialize_dataflow_v020:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/data-dictionary-metadata-v0.2.0-20260726'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out staged release branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - name: Reassemble and validate release payload
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
-          ARCHIVE="$archive" python3 - <<'PY'
-          import base64
-          import hashlib
-          import os
-          import tarfile
-          from pathlib import Path
-
-          parts = [Path(".release") / f"payload.part{i:02d}" for i in range(7)]
-          encoded = b"".join(part.read_bytes().strip() for part in parts)
-          raw = base64.b64decode(encoded, validate=True)
-          archive = Path(os.environ["ARCHIVE"])
-          archive.write_bytes(raw)
-          digest = hashlib.sha256(raw).hexdigest()
-          expected = "08b5253d759353415b412343d1ba353365ec5f674fd6228c9047851c69ede113"
-          print(f"archive_bytes={len(raw)} sha256={digest}")
-          if digest != expected:
-              raise SystemExit(f"release archive checksum mismatch: expected {expected}")
-          with tarfile.open(archive, mode="r:xz") as bundle:
-              names = {name.removeprefix("./") for name in bundle.getnames()}
-          required = {"DESCRIPTION", "README.md", "scripts/run_pipeline.R"}
-          missing = sorted(required - names)
-          if missing:
-              raise SystemExit(f"release archive is missing required files: {missing}")
-          print(f"validated_archive_members={len(names)}")
-          PY
-      - name: Extract normal repository tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          archive="$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
-          stage="$RUNNER_TEMP/dataflow-platform-v0.2.0"
-          staging_workflow="$RUNNER_TEMP/materialize-ci.yml"
-          cp .github/workflows/ci.yml "$staging_workflow"
-          mkdir -p "$stage"
-          tar -xJf "$archive" -C "$stage"
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -a "$stage/." .
-          mkdir -p .github/workflows
-          cp "$staging_workflow" .github/workflows/ci.yml
-          test -f DESCRIPTION
-          test -f scripts/run_pipeline.R
-          find . -type f -not -path './.git/*' | sort
-      - name: Commit normal repository tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git status --short
-          git diff --cached --quiet && { echo "No source-tree changes detected"; exit 1; }
-          git commit -m "Implement data dictionary and metadata pipeline v0.2.0"
-      - name: Push normal repository tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          git push origin "HEAD:${{ github.head_ref }}"
-
   test:
-    if: github.event_name != 'pull_request' || github.head_ref != 'agent/data-dictionary-metadata-v0.2.0-20260726'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -89,8 +13,8 @@ jobs:
         with:
           use-public-rspm: true
       - name: Install dependencies
-        run: Rscript scripts/bootstrap.R
+        run: Rscript scripts/bootstrap.R --ci --with-optional
       - name: Run tests
         run: Rscript scripts/run_tests.R
       - name: Run example pipeline
-        run: Rscript scripts/run_data_dictionary.R --input examples/data --output outputs/ci --max-categorical-levels 10
+        run: Rscript scripts/run_pipeline.R --pipeline data_dictionary --input examples/data --output outputs/ci --overwrite true
