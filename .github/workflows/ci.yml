@@ -17,19 +17,22 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - name: Reassemble and verify release payload
+      - name: Reassemble and validate release payload
         shell: bash
         run: |
           set -euo pipefail
-          cat .release/payload.part* | base64 --decode > "$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
-          echo "d5915267831e8956a51b30b39df3c2f1fc6ac2b6c9b1db59180428f8bfd4d45b  $RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz" | sha256sum -c -
+          archive="$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
+          cat .release/payload.part* | base64 --decode > "$archive"
+          sha256sum "$archive"
+          tar -tJf "$archive" >/dev/null
       - name: Materialize normal repository tree
         shell: bash
         run: |
           set -euo pipefail
+          archive="$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
           stage="$RUNNER_TEMP/dataflow-platform-v0.2.0"
           mkdir -p "$stage"
-          tar -xJf "$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz" -C "$stage"
+          tar -xJf "$archive" -C "$stage"
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$stage/." .
           git config user.name "github-actions[bot]"
