@@ -53,10 +53,14 @@ jobs:
           set -euo pipefail
           archive="$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
           stage="$RUNNER_TEMP/dataflow-platform-v0.2.0"
+          staging_workflow="$RUNNER_TEMP/materialize-ci.yml"
+          cp .github/workflows/ci.yml "$staging_workflow"
           mkdir -p "$stage"
           tar -xJf "$archive" -C "$stage"
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$stage/." .
+          mkdir -p .github/workflows
+          cp "$staging_workflow" .github/workflows/ci.yml
           test -f DESCRIPTION
           test -f scripts/run_pipeline.R
           find . -type f -not -path './.git/*' | sort
@@ -68,6 +72,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git status --short
+          git diff --cached --quiet && { echo "No source-tree changes detected"; exit 1; }
           git commit -m "Implement data dictionary and metadata pipeline v0.2.0"
       - name: Push normal repository tree
         shell: bash
