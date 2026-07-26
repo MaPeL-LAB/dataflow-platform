@@ -9,7 +9,3 @@ outputs/*
 *.log
 .DS_Store
 Thumbs.db
-# Never commit local research data
-/data/
-private_data/
-real_data/

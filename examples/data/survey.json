@@ -1,0 +1,86 @@
+[
+  {
+    "respondent_code": "R-1001",
+    "satisfaction": "low",
+    "would_recommend": false,
+    "visit_date": "2026-07-02",
+    "response_note": "Unique response note 1"
+  },
+  {
+    "respondent_code": "R-1002",
+    "satisfaction": "medium",
+    "would_recommend": true,
+    "visit_date": "2026-07-03",
+    "response_note": "Unique response note 2"
+  },
+  {
+    "respondent_code": "R-1003",
+    "satisfaction": "high",
+    "would_recommend": false,
+    "visit_date": "2026-07-04",
+    "response_note": "Unique response note 3"
+  },
+  {
+    "respondent_code": "R-1004",
+    "satisfaction": "low",
+    "would_recommend": true,
+    "visit_date": "2026-07-05",
+    "response_note": "Unique response note 4"
+  },
+  {
+    "respondent_code": "R-1005",
+    "satisfaction": "medium",
+    "would_recommend": false,
+    "visit_date": "2026-07-06",
+    "response_note": "Unique response note 5"
+  },
+  {
+    "respondent_code": "R-1006",
+    "satisfaction": "high",
+    "would_recommend": true,
+    "visit_date": "2026-07-07",
+    "response_note": "Unique response note 6"
+  },
+  {
+    "respondent_code": "R-1007",
+    "satisfaction": "low",
+    "would_recommend": false,
+    "visit_date": "2026-07-08",
+    "response_note": "Unique response note 7"
+  },
+  {
+    "respondent_code": "R-1008",
+    "satisfaction": "medium",
+    "would_recommend": true,
+    "visit_date": "2026-07-09",
+    "response_note": "Unique response note 8"
+  },
+  {
+    "respondent_code": "R-1009",
+    "satisfaction": "high",
+    "would_recommend": false,
+    "visit_date": "2026-07-10",
+    "response_note": "Unique response note 9"
+  },
+  {
+    "respondent_code": "R-1010",
+    "satisfaction": "low",
+    "would_recommend": true,
+    "visit_date": "2026-07-11",
+    "response_note": "Unique response note 10"
+  },
+  {
+    "respondent_code": "R-1011",
+    "satisfaction": "medium",
+    "would_recommend": false,
+    "visit_date": "2026-07-12",
+    "response_note": "Unique response note 11"
+  },
+  {
+    "respondent_code": "R-1012",
+    "satisfaction": "high",
+    "would_recommend": true,
+    "visit_date": "2026-07-13",
+    "response_note": "Unique response note 12"
+  }
+]

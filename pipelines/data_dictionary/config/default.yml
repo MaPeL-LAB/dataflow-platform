@@ -1,0 +1,87 @@
+pipeline:
+  name: data_dictionary
+  version: 0.2.0
+
+input:
+  recursive: false
+  include_hidden: false
+  continue_on_error: true
+  excel_sheets: all
+  r_objects: all
+  text_delimiter: "\t"
+  text_encoding: "UTF-8"
+  haven_encoding: null
+  sas_catalog_encoding: null
+  n_max: null
+  auto_sas_catalog: true
+  sas_catalog: null
+  allow_unsafe_pickle: false
+  compute_md5: false
+
+profiling:
+  blank_as_missing: true
+  max_categorical_levels: 10
+  max_categorical_ratio: 1.0
+  factor_always_categorical: true
+  labelled_always_categorical: true
+  logical_as_categorical: true
+  numeric_low_cardinality_as_categorical: false
+  numeric_max_categorical_levels: 10
+  numeric_max_categorical_ratio: 0.05
+  id_uniqueness_threshold: 0.98
+  id_min_non_missing: 10
+  id_max_mean_length: 80
+  long_text_length_threshold: 100
+  sample_values: 5
+  max_levels_reported: 50
+  include_missing_level: true
+  include_level_frequencies: true
+  include_quantiles: true
+  high_missingness_threshold: 0.50
+  check_duplicate_rows: true
+  duplicate_check_max_rows: 100000
+  check_whitespace: true
+  check_infinite_values: true
+
+dictionary:
+  inline_max_values: 10
+  preview_values: 5
+  use_variable_label_as_definition: true
+  flag_missing_definitions: true
+  include_inferred_validation_rules: true
+
+metadata:
+  project_name: null
+  project_description: null
+  author: null
+  data_owner: null
+  data_steward: null
+  source_system: null
+  access_classification: null
+  access_permissions: null
+  license: null
+  tags: []
+
+privacy:
+  include_examples: true
+  mask_potential_identifiers: true
+  mask_potential_sensitive: true
+  masked_token: "<masked>"
+  identifier_name_patterns:
+    - '(^|_)(id|key|uuid|guid|record_number|row_number|case_number|reference_number|account_number)(_|$)'
+    - '(^|_)(code|number|no)$'
+  sensitive_name_patterns:
+    - '(^|_)(name|first_name|last_name|full_name|email|e_mail|phone|mobile|telephone)(_|$)'
+    - '(^|_)(address|street|postcode|postal_code|zip|ssn|national_id|passport)(_|$)'
+    - '(^|_)(dob|birth_date|date_of_birth|patient|client|customer|employee)(_|$)'
+
+output:
+  write_csv: true
+  write_json: true
+  write_excel: true
+  write_html: true
+  write_legacy_variable_dictionary: true
+  overwrite: false
+  html_max_rows_per_table: 5000
+  workbook_freeze_header: true
+  workbook_filters: true

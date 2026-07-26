@@ -1,0 +1,10 @@
+repository:
+  name: data-pipeline-suite
+  version: 0.2.0
+
+pipelines:
+  data_dictionary:
+    version: 0.2.0
+    description: Create separate comprehensive data dictionary and metadata products from one or more data files.
+    entrypoint: pipelines/data_dictionary/run.R
+    default_config: pipelines/data_dictionary/config/default.yml
