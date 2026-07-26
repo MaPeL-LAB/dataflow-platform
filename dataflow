@@ -350,6 +350,7 @@ require_command basename
 [[ -f "${REPO_ROOT}/scripts/run_pipeline.R" ]] || die "Could not find scripts/run_pipeline.R beside this launcher."
 [[ -f "${REPO_ROOT}/config/pipelines.yml" ]] || die "Could not locate config/pipelines.yml."
 [[ -f "${REPO_ROOT}/scripts/manage_project_metadata.R" ]] || die "Could not find scripts/manage_project_metadata.R."
+[[ -f "${REPO_ROOT}/scripts/check_runtime.R" ]] || die "Could not find scripts/check_runtime.R."
 
 if [[ "${INTERACTIVE}" == "true" ]]; then prompt_for_values; fi
 
@@ -373,14 +374,7 @@ if [[ "${OUTPUT_ROOT}" != /* ]]; then
   OUTPUT_ROOT="${CALLER_DIR}/${OUTPUT_ROOT}"
 fi
 
-Rscript --vanilla -e '
-required <- c("yaml", "readr", "readxl", "haven", "jsonlite", "openxlsx")
-missing <- required[!vapply(required, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1L))]
-if (length(missing)) {
-  stop("Missing required local R packages: ", paste(missing, collapse = ", "),
-       ". The launcher will not install packages automatically.", call. = FALSE)
-}
-' >/dev/null
+Rscript --vanilla "${REPO_ROOT}/scripts/check_runtime.R" >/dev/null
 
 PROJECT_SLUG="$(slugify "${PROJECT_NAME}")"
 RUN_ID="$(date -u '+%Y-%m-%dT%H%M%SZ')"

@@ -17,7 +17,7 @@ data-pipeline-suite/
 ├── DataFlow-Windows.cmd             # double-click Windows launcher
 ├── config/pipelines.yml
 ├── R/                               # shared framework helpers
-├── scripts/                         # bootstrap, list, run, and test entrypoints
+├── scripts/                         # runtime check, bootstrap, run, and test entrypoints
 ├── pipelines/
 │   ├── _template/                   # copyable skeleton for future pipelines
 │   └── data_dictionary/

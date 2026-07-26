@@ -245,7 +245,8 @@ try {
     $PipelineScript = Join-Path $RepoRoot "scripts/run_pipeline.R"
     $RegistryFile = Join-Path $RepoRoot "config/pipelines.yml"
     $MetadataHelper = Join-Path $RepoRoot "scripts/manage_project_metadata.R"
-    foreach ($requiredFile in @($PipelineScript, $RegistryFile, $MetadataHelper)) {
+    $RuntimeCheck = Join-Path $RepoRoot "scripts/check_runtime.R"
+    foreach ($requiredFile in @($PipelineScript, $RegistryFile, $MetadataHelper, $RuntimeCheck)) {
         if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
             Stop-DataFlow "Required repository file not found: ${requiredFile}"
         }
@@ -309,15 +310,7 @@ try {
     }
     $OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 
-    $packageCheck = @'
-required <- c("yaml", "readr", "readxl", "haven", "jsonlite", "openxlsx")
-missing <- required[!vapply(required, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1L))]
-if (length(missing)) {
-  stop("Missing required local R packages: ", paste(missing, collapse = ", "),
-       ". Run Rscript --vanilla scripts/bootstrap.R once before using DataFlow.", call. = FALSE)
-}
-'@
-    Invoke-CheckedR -RscriptPath $RscriptPath -Arguments @("--vanilla", "-e", $packageCheck) | Out-Null
+    Invoke-CheckedR -RscriptPath $RscriptPath -Arguments @("--vanilla", $RuntimeCheck) | Out-Null
 
     $ProjectSlug = Get-ProjectSlug $Project
     $ProjectDirectory = Join-Path $OutputRoot $ProjectSlug
