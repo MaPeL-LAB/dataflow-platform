@@ -47,7 +47,7 @@ jobs:
               raise SystemExit(f"release archive is missing required files: {missing}")
           print(f"validated_archive_members={len(names)}")
           PY
-      - name: Materialize normal repository tree
+      - name: Extract normal repository tree
         shell: bash
         run: |
           set -euo pipefail
@@ -57,10 +57,22 @@ jobs:
           tar -xJf "$archive" -C "$stage"
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a "$stage/." .
+          test -f DESCRIPTION
+          test -f scripts/run_pipeline.R
+          find . -type f -not -path './.git/*' | sort
+      - name: Commit normal repository tree
+        shell: bash
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          git status --short
           git commit -m "Implement data dictionary and metadata pipeline v0.2.0"
+      - name: Push normal repository tree
+        shell: bash
+        run: |
+          set -euo pipefail
           git push origin "HEAD:${{ github.head_ref }}"
 
   test:
