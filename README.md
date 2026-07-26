@@ -11,6 +11,10 @@ The repository is designed for more than one pipeline. Shared command-line handl
 
 ```text
 data-pipeline-suite/
+├── dataflow                         # macOS/Linux Bash launcher
+├── DataFlow.command                 # double-click macOS launcher
+├── DataFlow.ps1                     # Windows PowerShell launcher
+├── DataFlow-Windows.cmd             # double-click Windows launcher
 ├── config/pipelines.yml
 ├── R/                               # shared framework helpers
 ├── scripts/                         # bootstrap, list, run, and test entrypoints
@@ -36,16 +40,102 @@ data-pipeline-suite/
 
 ## Quick start
 
-Requirements: R 4.1 or later. From the repository root:
+Requirements:
+
+- Windows, macOS, or Linux;
+- R 4.1 or later, with `Rscript` available on `PATH`; and
+- the required R packages.
+
+After cloning the repository, install missing packages once:
+
+```text
+Rscript --vanilla scripts/bootstrap.R
+```
+
+The bootstrap step may contact CRAN to install missing packages. Normal pipeline
+runs are strictly local and do not install software, call an LLM, send
+telemetry, or access a network service.
+
+## Local project launcher
+
+The guided workflow is available on all three major desktop operating systems.
+
+| Operating system | Guided launch | Terminal launch |
+|---|---|---|
+| macOS | Double-click `DataFlow.command` | `./dataflow` |
+| Linux | Run `./dataflow` | `./dataflow --project ...` |
+| Windows | Double-click `DataFlow-Windows.cmd` | `.\DataFlow.ps1` |
+
+The launcher asks for a project name, one or more input paths, an output root, a
+run mode, an optional comment, and reusable public metadata.
+
+### macOS and Linux
 
 ```bash
-Rscript scripts/bootstrap.R
-Rscript scripts/list_pipelines.R
-Rscript scripts/run_pipeline.R \
-  --pipeline data_dictionary \
-  --input examples/data \
-  --output outputs/example \
-  --overwrite true
+./dataflow \
+  --project "Study ABC" \
+  --input "/path/to/study/data" \
+  --output-root "/path/to/study/outputs" \
+  --mode replace \
+  --comment "Updated after investigator review"
+```
+
+On macOS, HTML previews open in Safari. On Linux, the launcher uses `xdg-open`
+or `gio` to open the system browser when available.
+
+### Windows
+
+From PowerShell:
+
+```powershell
+.\DataFlow.ps1 `
+  -Project "Study ABC" `
+  -InputPaths "C:\path\to\study\data" `
+  -OutputRoot "C:\path\to\study\outputs" `
+  -Mode replace `
+  -Comment "Updated after investigator review" `
+  -OpenReport true
+```
+
+`DataFlow-Windows.cmd` starts the same PowerShell workflow in interactive mode.
+It does not permanently change the machine's PowerShell execution policy. On
+managed computers where local scripts are prohibited by organisational policy,
+users can still run the shared R entrypoint directly.
+
+### Shared version and metadata behaviour
+
+Each project receives dated output under `versions/`, a portable `current.txt`
+pointer, and—when the filesystem permits it—a convenient `current` link or
+Windows junction.
+`version` creates a dated run without changing an existing current version.
+`replace` safely promotes the new run to current while retaining the prior
+version. Run comments are included in the metadata files and internal technical
+HTML report.
+
+On the first interactive run for a project, the launcher offers to collect and
+save the public metadata used by the open-science report:
+
+- project description;
+- author list or preferred dataset citation;
+- license;
+- access classification;
+- access conditions; and
+- comma-separated tags.
+
+The values are stored locally in
+`<output-root>/<project-slug>/project_metadata.yml`. Later runs reuse that
+profile by default and offer an edit option. Press Return to retain a displayed
+value, or enter a single `-` to clear it. The profile is separate from dated run
+outputs, so replacing the current run does not remove it. When an existing
+profile is edited, the prior file is retained as `project_metadata.previous.yml`.
+
+Non-interactive Bash and PowerShell runs automatically use the saved project
+profile when it exists. Advanced Bash users can still pass their own pipeline
+configuration after `--`; an explicit `--config` takes precedence over the
+saved profile. The cross-platform R entrypoint remains available for automation:
+
+```text
+Rscript --vanilla scripts/run_pipeline.R --pipeline data_dictionary --input <path> --output <path>
 ```
 
 Install optional Arrow/Parquet and trusted Python-pickle support with:
@@ -139,6 +229,13 @@ A `.py` program is source code, not a tabular data file. Python-created datasets
 
 Compressed delimited, JSON, Stata, SAS, and SPSS inputs with `.gz`, `.bz2`, or `.xz` suffixes are recognized where supported by the reader.
 
+Haven-family readers run in an isolated local R worker so a native reader crash
+cannot terminate the main pipeline. For legacy Stata 114/115 files with a
+malformed trailing region, the pipeline can recover the valid data block with a
+base-R safety reader. That recovery preserves raw coded values, variable labels,
+and display formats, while clearly recording that trailing value-label mappings
+were not trusted or imported.
+
 ## Outputs
 
 Each run can produce:
@@ -149,7 +246,8 @@ Each run can produce:
 ├── data_dictionary.json             # field-level machine-readable product
 ├── metadata.xlsx                    # full metadata workbook
 ├── metadata.json                    # full machine-readable metadata product
-├── metadata_report.html             # combined browsable report, clearly separated by concept
+├── metadata_report.html             # comprehensive internal technical report
+├── open_science_metadata_report.html # concise, printable public metadata report
 ├── resolved_config.yml
 ├── artifact_manifest.csv
 └── csv/
@@ -174,6 +272,27 @@ Each run can produce:
     ├── errors.csv
     └── variable_dictionary.csv       # compatibility alias of data_dictionary.csv
 ```
+
+### HTML reports
+
+Each run produces two deliberately different reports:
+
+- `metadata_report.html` is the comprehensive technical report for internal
+  review. It retains operational, provenance, quality, privacy-screening, and
+  detailed variable metadata.
+- `open_science_metadata_report.html` is a concise public-facing metadata
+  report appropriate for open-science documentation. It contains a release
+  overview and a six-column field dictionary, but excludes private paths,
+  hashes, filesystem details, reader diagnostics, run comments, representative
+  values, and record-level data.
+
+The open-science report is standalone and uses no external fonts, scripts, or
+network resources. Its **Print / Save as PDF** button opens the browser's system
+print dialog. On macOS, select **PDF → Save as PDF**; on Windows, choose
+**Microsoft Print to PDF** or **Save as PDF**; on Linux, use the browser's
+**Print to File/PDF** option. Print styling uses A4 landscape pages, repeats
+table headers, and includes every dictionary row even when the on-screen filter
+is active.
 
 ### Data dictionary contents
 

@@ -303,6 +303,8 @@ run_data_dictionary_pipeline <- function(inputs, output_dir, default_config_path
   run_metadata <- data.frame(
     pipeline_name = as.character(config$pipeline$name),
     pipeline_version = as.character(config$pipeline$version),
+    project_name = as.character(config$metadata$project_name %||% NA_character_),
+    run_comment = as.character(config$metadata$run_comment %||% NA_character_),
     started_utc = format(started_at, tz = "UTC", usetz = TRUE, format = "%Y-%m-%dT%H:%M:%SZ"),
     completed_utc = completed_utc,
     duration_seconds = as.numeric(difftime(completed_at, started_at, units = "secs")),

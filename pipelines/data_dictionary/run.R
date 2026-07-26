@@ -23,6 +23,7 @@ print_data_dictionary_help <- function() {
     "  --preview-values <number>          Values shown when an inline domain is previewed\n",
     "  --include-examples true|false       Include representative values\n",
     "  --project-name <text>               Optional descriptive metadata\n",
+    "  --run-comment <text>                Optional note explaining this run\n",
     "  --data-owner <text>                 Optional administrative metadata\n",
     "  --data-steward <text>               Optional administrative metadata\n",
     "  --overwrite true|false              Allow writing to a nonempty output directory\n"

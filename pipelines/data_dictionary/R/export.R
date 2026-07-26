@@ -154,7 +154,7 @@ prepare_output_directory <- function(output_dir, overwrite = FALSE) {
       known_artifacts <- file.path(
         output_dir,
         c(
-          "csv", "metadata_report.html", "metadata.xlsx", "metadata.json",
+          "csv", "metadata_report.html", "open_science_metadata_report.html", "metadata.xlsx", "metadata.json",
           "data_dictionary.xlsx", "data_dictionary.json", "resolved_config.yml",
           "artifact_manifest.csv"
         )
@@ -172,6 +172,7 @@ artifact_group_for_path <- function(relative_paths) {
   groups[grepl("resolved_config|artifact_manifest", relative_paths)] <- "control"
   groups[grepl("data_dictionary|variable_dictionary|dictionary_schema", relative_paths)] <- "dictionary"
   groups[grepl("categorical_levels|value_labels|documentation_gaps", relative_paths)] <- "dictionary + metadata"
+  groups[grepl("open_science_metadata_report", relative_paths)] <- "public report"
   groups
 }
 
@@ -230,7 +231,11 @@ export_metadata_bundle <- function(results, output_dir, config) {
     )
   }
   if (isTRUE(config$output$write_html)) {
-    paths <- c(paths, write_html_report(results, file.path(output_dir, "metadata_report.html"), config))
+    paths <- c(
+      paths,
+      write_html_report(results, file.path(output_dir, "metadata_report.html"), config),
+      write_public_html_report(results, file.path(output_dir, "open_science_metadata_report.html"), config)
+    )
   }
 
   normalized_paths <- normalizePath(paths, winslash = "/", mustWork = TRUE)
