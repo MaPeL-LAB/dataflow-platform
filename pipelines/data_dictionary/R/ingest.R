@@ -121,15 +121,24 @@ read_haven_source <- function(path, format, config) {
     sas7bdat = {
       reader_function <- "read_sas"
       catalog <- resolve_sas_catalog(path, config)
-      if (!is.null(catalog)) import_notes <- paste0("SAS catalog used: ", normalizePath(catalog, winslash = "/", mustWork = TRUE))
-      haven::read_sas(
-        path,
-        catalog_file = catalog,
-        encoding = encoding,
-        catalog_encoding = config$input$sas_catalog_encoding %||% encoding,
+      if (!is.null(catalog)) {
+        import_notes <- paste0(
+          "SAS catalog used: ",
+          normalizePath(catalog, winslash = "/", mustWork = TRUE)
+        )
+      }
+
+      sas_args <- list(
+        data_file = path,
         n_max = n_max,
         .name_repair = "minimal"
       )
+      if (!is.null(catalog)) sas_args$catalog_file <- catalog
+      if (!is.null(encoding)) sas_args$encoding <- encoding
+      catalog_encoding <- config$input$sas_catalog_encoding %||% encoding
+      if (!is.null(catalog_encoding)) sas_args$catalog_encoding <- catalog_encoding
+
+      do.call(haven::read_sas, sas_args)
     },
     xpt = {
       reader_function <- "read_xpt"
