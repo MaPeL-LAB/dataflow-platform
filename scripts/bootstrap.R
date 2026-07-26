@@ -28,7 +28,11 @@ if (is.null(repos) || is.null(repos[["CRAN"]]) || identical(repos[["CRAN"]], "@C
 }
 
 log_info("Installing: ", paste(missing, collapse = ", "))
-utils::install.packages(missing, repos = repos, dependencies = TRUE)
+utils::install.packages(
+  missing,
+  repos = repos,
+  dependencies = c("Depends", "Imports", "LinkingTo")
+)
 
 still_missing <- missing[!vapply(missing, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1L))]
 if (length(still_missing) > 0L) {
