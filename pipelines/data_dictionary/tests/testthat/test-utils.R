@@ -34,10 +34,92 @@ testthat::test_that("artifact groups preserve the dictionary-metadata distinctio
     "csv/categorical_levels.csv",
     "metadata.json",
     "metadata_report.html",
+    "open_science_metadata_report.html",
     "resolved_config.yml"
   )
   testthat::expect_equal(
     artifact_group_for_path(paths),
-    c("dictionary", "dictionary", "dictionary + metadata", "metadata", "combined report", "control")
+    c("dictionary", "dictionary", "dictionary + metadata", "metadata", "combined report", "public report", "control")
+  )
+})
+
+testthat::test_that("missing optional package versions use a display dash", {
+  testthat::expect_equal(package_version_safe("package_that_does_not_exist_12345"), "-")
+})
+
+testthat::test_that("project metadata profiles round-trip through the local helper", {
+  profile <- tempfile(fileext = ".yml")
+  helper <- file.path(repo_root, "scripts", "manage_project_metadata.R")
+  rscript <- file.path(R.home("bin"), "Rscript")
+  values <- c(
+    "Profile Test",
+    "Public project description",
+    "Research Team (2026). Preferred citation.",
+    "CC BY 4.0",
+    "Controlled",
+    "Apply through the study access process.",
+    "open science, FAIR"
+  )
+
+  write_output <- system2(
+    rscript,
+    args = c("--vanilla", shQuote(helper), "write", shQuote(profile), shQuote(values)),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  testthat::expect_null(attr(write_output, "status"))
+  testthat::expect_true(file.exists(profile))
+
+  metadata <- yaml::read_yaml(profile)$metadata
+  testthat::expect_equal(metadata$project_name, values[[1L]])
+  testthat::expect_equal(metadata$project_description, values[[2L]])
+  testthat::expect_equal(metadata$author, values[[3L]])
+  testthat::expect_equal(metadata$license, values[[4L]])
+  testthat::expect_equal(metadata$access_classification, values[[5L]])
+  testthat::expect_equal(metadata$access_permissions, values[[6L]])
+  testthat::expect_equal(unlist(metadata$tags, use.names = FALSE), c("open science", "FAIR"))
+
+  read_output <- system2(
+    rscript,
+    args = c("--vanilla", shQuote(helper), "read", shQuote(profile)),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  testthat::expect_null(attr(read_output, "status"))
+  testthat::expect_equal(
+    unname(read_output),
+    c(values[[2L]], values[[3L]], values[[4L]], values[[5L]], values[[6L]], "open science, FAIR")
+  )
+
+  json_output <- system2(
+    rscript,
+    args = c("--vanilla", shQuote(helper), "read-json", shQuote(profile)),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  testthat::expect_null(attr(json_output, "status"))
+  json_metadata <- jsonlite::fromJSON(paste(json_output, collapse = "\n"))
+  testthat::expect_equal(json_metadata$project_description, values[[2L]])
+  testthat::expect_equal(json_metadata$author, values[[3L]])
+  testthat::expect_equal(json_metadata$tags, "open science, FAIR")
+
+  updated_values <- values
+  updated_values[[2L]] <- "Updated public project description"
+  update_output <- system2(
+    rscript,
+    args = c("--vanilla", shQuote(helper), "write", shQuote(profile), shQuote(updated_values)),
+    stdout = TRUE,
+    stderr = TRUE
+  )
+  testthat::expect_null(attr(update_output, "status"))
+  previous_profile <- sub("\\.yml$", ".previous.yml", profile)
+  testthat::expect_true(file.exists(previous_profile))
+  testthat::expect_equal(
+    yaml::read_yaml(previous_profile)$metadata$project_description,
+    values[[2L]]
+  )
+  testthat::expect_equal(
+    yaml::read_yaml(profile)$metadata$project_description,
+    updated_values[[2L]]
   )
 })

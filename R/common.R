@@ -234,7 +234,7 @@ safe_sheet_name <- function(x, existing = character()) {
 }
 
 package_version_safe <- function(package) {
-  if (!requireNamespace(package, quietly = TRUE)) return(NA_character_)
+  if (!requireNamespace(package, quietly = TRUE)) return("-")
   as.character(utils::packageVersion(package))
 }
 

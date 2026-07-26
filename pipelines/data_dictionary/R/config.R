@@ -119,6 +119,7 @@ build_cli_overrides <- function(args) {
 
   metadata_args <- c(
     project_name = "project_name",
+    run_comment = "run_comment",
     project_description = "project_description",
     author = "author",
     data_owner = "data_owner",

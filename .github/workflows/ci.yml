@@ -6,7 +6,15 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: r-lib/actions/setup-r@v2
@@ -16,7 +24,11 @@ jobs:
         shell: bash
         run: |
           set +e
-          Rscript scripts/bootstrap.R --ci --with-optional > bootstrap.log 2>&1
+          bootstrap_args=(--ci)
+          if [ "${RUNNER_OS}" = "Linux" ]; then
+            bootstrap_args+=(--with-optional)
+          fi
+          Rscript scripts/bootstrap.R "${bootstrap_args[@]}" > bootstrap.log 2>&1
           status=$?
           if [ "$status" -ne 0 ]; then
             cat bootstrap.log
@@ -34,9 +46,44 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: r-test-log-${{ github.run_id }}
+          name: r-test-log-${{ runner.os }}-${{ github.run_id }}
           path: test-results.log
           if-no-files-found: ignore
           retention-days: 7
       - name: Run example pipeline
         run: Rscript scripts/run_pipeline.R --pipeline data_dictionary --input examples/data --output outputs/ci --overwrite true
+      - name: Smoke-test macOS/Linux launcher
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          bash -n dataflow
+          ./dataflow \
+            --project "CI launcher" \
+            --input "examples/data/people.csv" \
+            --output-root "outputs/launcher" \
+            --mode replace \
+            --open-report false
+          test -s "outputs/launcher/ci-launcher/current.txt"
+          test -s "outputs/launcher/ci-launcher/current/open_science_metadata_report.html"
+      - name: Smoke-test Windows launcher
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          .\DataFlow.ps1 `
+            -Project "CI launcher" `
+            -InputPaths "examples\data\people.csv" `
+            -OutputRoot "outputs\launcher" `
+            -Mode replace `
+            -OpenReport false
+          if (-not (Test-Path "outputs\launcher\ci-launcher\current.txt" -PathType Leaf)) {
+            throw "Portable current pointer was not created."
+          }
+          $report = "outputs\launcher\ci-launcher\current\open_science_metadata_report.html"
+          if (-not (Test-Path $report -PathType Leaf)) {
+            $relativeCurrent = (Get-Content "outputs\launcher\ci-launcher\current.txt" -Raw).Trim()
+            $report = Join-Path "outputs\launcher\ci-launcher" $relativeCurrent
+            $report = Join-Path $report "open_science_metadata_report.html"
+          }
+          if (-not (Test-Path $report -PathType Leaf)) {
+            throw "Open-science metadata report was not created through the Windows launcher."
+          }

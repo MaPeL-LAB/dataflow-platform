@@ -1,0 +1,536 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+on_error() {
+  local exit_code=$?
+  echo "[ERROR] Line ${BASH_LINENO[0]}: ${BASH_COMMAND}" >&2
+  exit "${exit_code}"
+}
+trap on_error ERR
+
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${SCRIPT_DIR}"
+CALLER_DIR="$(pwd -P)"
+
+PROJECT_NAME=""
+OUTPUT_ROOT="${REPO_ROOT}/outputs"
+RUN_MODE="version"
+RUN_COMMENT=""
+OPEN_REPORT="false"
+INTERACTIVE="false"
+DRY_RUN="false"
+INPUTS=()
+PIPELINE_ARGS=()
+PROJECT_METADATA_FILE=""
+PROJECT_DESCRIPTION=""
+AUTHOR_CITATION=""
+LICENSE_VALUE=""
+ACCESS_CLASSIFICATION=""
+ACCESS_CONDITIONS=""
+TAGS_VALUE=""
+METADATA_PROFILE_CHANGED="false"
+
+usage() {
+  cat <<'EOF'
+DataFlow local project launcher
+
+Usage:
+  ./dataflow
+  ./dataflow --project NAME --input PATH [--input PATH ...] [options]
+
+Required in non-interactive mode:
+  --project NAME            Project or study name
+  --input PATH              Input file or directory; may be repeated
+
+Options:
+  --output-root DIRECTORY   Parent directory for project outputs
+                            (default: repository outputs/)
+  --mode version|replace    version: create a dated run without changing an
+                            existing current version; replace: promote the new
+                            run to current and retain the prior version
+  --comment TEXT            Optional run note stored in metadata and the technical report
+  --open-report true|false  Open the open-science metadata report in the
+                            platform browser (Safari on macOS)
+  --interactive             Prompt for missing values
+  --dry-run                 Validate and print the command without running it
+  --help                    Show this help
+  --                        Pass remaining options to the R pipeline
+
+This launcher is strictly local. It does not install packages, access an LLM,
+send telemetry, or make network requests.
+
+Interactive runs can save reusable public metadata in:
+  <output-root>/<project-slug>/project_metadata.yml
+EOF
+}
+
+die() {
+  echo "[ERROR] $*" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "Required command not found: $1"
+}
+
+parse_boolean() {
+  case "$1" in
+    true|TRUE|yes|YES|1) printf '%s' "true" ;;
+    false|FALSE|no|NO|0) printf '%s' "false" ;;
+    *) die "Expected true or false, received: $1" ;;
+  esac
+}
+
+slugify() {
+  local value
+  value="$(printf '%s' "$1" | LC_ALL=C tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')"
+  if [[ -z "${value}" ]]; then value="project"; fi
+  printf '%s' "${value}"
+}
+
+csv_escape() {
+  local value="$1"
+  value="${value//$'\r'/ }"
+  value="${value//$'\n'/ }"
+  value="${value//\"/\"\"}"
+  printf '"%s"' "${value}"
+}
+
+print_command() {
+  local arg
+  printf '  '
+  for arg in "$@"; do printf '%q ' "${arg}"; done
+  printf '\n'
+}
+
+prompt_with_default() {
+  local label="$1"
+  local current_value="$2"
+  local destination="$3"
+  local entered_value=""
+
+  if [[ -n "${current_value}" ]]; then
+    read -r -p "${label} [${current_value}]: " entered_value
+  else
+    read -r -p "${label}: " entered_value
+  fi
+
+  if [[ "${entered_value}" == "-" ]]; then
+    entered_value=""
+  elif [[ -z "${entered_value}" ]]; then
+    entered_value="${current_value}"
+  fi
+  printf -v "${destination}" '%s' "${entered_value}"
+}
+
+load_project_metadata() {
+  local values=()
+  local value=""
+
+  while IFS= read -r value; do
+    values+=("${value}")
+  done < <(
+    Rscript --vanilla "${REPO_ROOT}/scripts/manage_project_metadata.R" \
+      read "${PROJECT_METADATA_FILE}"
+  )
+
+  [[ ${#values[@]} -eq 6 ]] || die "Could not read the saved project metadata profile: ${PROJECT_METADATA_FILE}"
+  PROJECT_DESCRIPTION="${values[0]}"
+  AUTHOR_CITATION="${values[1]}"
+  LICENSE_VALUE="${values[2]}"
+  ACCESS_CLASSIFICATION="${values[3]}"
+  ACCESS_CONDITIONS="${values[4]}"
+  TAGS_VALUE="${values[5]}"
+}
+
+edit_project_metadata() {
+  echo "Complete the public metadata profile. Press Return to keep a displayed value."
+  echo "Enter a single hyphen (-) to clear a saved value."
+  prompt_with_default "Project description" "${PROJECT_DESCRIPTION}" PROJECT_DESCRIPTION
+  prompt_with_default "Author / preferred citation" "${AUTHOR_CITATION}" AUTHOR_CITATION
+  prompt_with_default "License" "${LICENSE_VALUE}" LICENSE_VALUE
+  prompt_with_default "Access classification" "${ACCESS_CLASSIFICATION}" ACCESS_CLASSIFICATION
+  prompt_with_default "Access conditions" "${ACCESS_CONDITIONS}" ACCESS_CONDITIONS
+  prompt_with_default "Tags (comma-separated)" "${TAGS_VALUE}" TAGS_VALUE
+
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    echo "[DRY RUN] Would save project metadata: ${PROJECT_METADATA_FILE}"
+    return
+  fi
+
+  mkdir -p "${PROJECT_DIR}"
+  Rscript --vanilla "${REPO_ROOT}/scripts/manage_project_metadata.R" \
+    write \
+    "${PROJECT_METADATA_FILE}" \
+    "${PROJECT_NAME}" \
+    "${PROJECT_DESCRIPTION}" \
+    "${AUTHOR_CITATION}" \
+    "${LICENSE_VALUE}" \
+    "${ACCESS_CLASSIFICATION}" \
+    "${ACCESS_CONDITIONS}" \
+    "${TAGS_VALUE}" >/dev/null
+  METADATA_PROFILE_CHANGED="true"
+  echo "[INFO] Saved reusable project metadata: ${PROJECT_METADATA_FILE}"
+}
+
+configure_project_metadata() {
+  local response=""
+
+  if [[ -f "${PROJECT_METADATA_FILE}" ]]; then
+    load_project_metadata
+    echo "[INFO] Found saved project metadata: ${PROJECT_METADATA_FILE}"
+    read -r -p "Reuse it without changes? [Y/n]: " response
+    case "${response}" in
+      n|N|no|NO) edit_project_metadata ;;
+      *) echo "[INFO] Reusing the saved public metadata profile." ;;
+    esac
+    return
+  fi
+
+  read -r -p "Create a reusable public metadata profile for this project? [Y/n]: " response
+  case "${response}" in
+    n|N|no|NO) echo "[INFO] Continuing without a saved public metadata profile." ;;
+    *) edit_project_metadata ;;
+  esac
+}
+
+open_local_report() {
+  local report_path="$1"
+  local operating_system=""
+  operating_system="$(uname -s)"
+
+  case "${operating_system}" in
+    Darwin)
+      command -v open >/dev/null 2>&1 || return 1
+      open -a Safari "${report_path}"
+      ;;
+    Linux)
+      if command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "${report_path}"
+      elif command -v gio >/dev/null 2>&1; then
+        gio open "${report_path}"
+      else
+        return 1
+      fi
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+absolute_existing_path() {
+  local path="$1"
+  local parent=""
+  local name=""
+
+  if [[ -d "${path}" ]]; then
+    (cd -P -- "${path}" && pwd)
+    return
+  fi
+
+  parent="$(dirname -- "${path}")"
+  name="$(basename -- "${path}")"
+  printf '%s/%s' "$(cd -P -- "${parent}" && pwd)" "${name}"
+}
+
+prompt_for_values() {
+  local value=""
+
+  if [[ -z "${PROJECT_NAME}" ]]; then
+    while [[ -z "${PROJECT_NAME}" ]]; do
+      read -r -p "Project/study name: " PROJECT_NAME
+    done
+  fi
+
+  if (( ${#INPUTS[@]} == 0 )); then
+    echo "Enter input files or directories. Press Return on an empty line when finished."
+    while true; do
+      read -r -p "Input path: " value
+      [[ -z "${value}" ]] && break
+      INPUTS+=("${value}")
+    done
+  fi
+
+  read -r -p "Output root [${OUTPUT_ROOT}]: " value
+  if [[ -n "${value}" ]]; then OUTPUT_ROOT="${value}"; fi
+
+  echo "Run mode:"
+  echo "  1) New dated version (leave an existing current version unchanged)"
+  echo "  2) Replace current safely (retain the prior dated version)"
+  read -r -p "Choose 1 or 2 [1]: " value
+  case "${value:-1}" in
+    1) RUN_MODE="version" ;;
+    2) RUN_MODE="replace" ;;
+    *) die "Run mode must be 1 or 2." ;;
+  esac
+
+  read -r -p "Optional run comment: " RUN_COMMENT
+
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    read -r -p "Open the open-science metadata report in Safari? [Y/n]: " value
+    case "${value}" in
+      n|N|no|NO) OPEN_REPORT="false" ;;
+      *) OPEN_REPORT="true" ;;
+    esac
+  fi
+}
+
+if (( $# == 0 )); then INTERACTIVE="true"; fi
+
+while (( $# > 0 )); do
+  case "$1" in
+    --project)
+      [[ $# -ge 2 ]] || die "--project requires a value."
+      PROJECT_NAME="$2"
+      shift 2
+      ;;
+    --input)
+      [[ $# -ge 2 ]] || die "--input requires a value."
+      INPUTS+=("$2")
+      shift 2
+      ;;
+    --output-root)
+      [[ $# -ge 2 ]] || die "--output-root requires a value."
+      OUTPUT_ROOT="$2"
+      shift 2
+      ;;
+    --mode)
+      [[ $# -ge 2 ]] || die "--mode requires a value."
+      RUN_MODE="$2"
+      shift 2
+      ;;
+    --comment)
+      [[ $# -ge 2 ]] || die "--comment requires a value."
+      RUN_COMMENT="$2"
+      shift 2
+      ;;
+    --open-report)
+      [[ $# -ge 2 ]] || die "--open-report requires a value."
+      OPEN_REPORT="$(parse_boolean "$2")"
+      shift 2
+      ;;
+    --interactive)
+      INTERACTIVE="true"
+      shift
+      ;;
+    --dry-run)
+      DRY_RUN="true"
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      while (( $# > 0 )); do
+        PIPELINE_ARGS+=("$1")
+        shift
+      done
+      ;;
+    *)
+      die "Unknown option: $1. Use --help for usage."
+      ;;
+  esac
+done
+
+echo "[INFO] Preflight: validating local runtime and inputs."
+require_command Rscript
+require_command date
+require_command mkdir
+require_command mv
+require_command ln
+require_command sed
+require_command tr
+require_command uname
+require_command dirname
+require_command basename
+
+[[ -f "${REPO_ROOT}/scripts/run_pipeline.R" ]] || die "Could not find scripts/run_pipeline.R beside this launcher."
+[[ -f "${REPO_ROOT}/config/pipelines.yml" ]] || die "Could not locate config/pipelines.yml."
+[[ -f "${REPO_ROOT}/scripts/manage_project_metadata.R" ]] || die "Could not find scripts/manage_project_metadata.R."
+[[ -f "${REPO_ROOT}/scripts/check_runtime.R" ]] || die "Could not find scripts/check_runtime.R."
+
+if [[ "${INTERACTIVE}" == "true" ]]; then prompt_for_values; fi
+
+[[ -n "${PROJECT_NAME}" ]] || die "--project is required in non-interactive mode."
+(( ${#INPUTS[@]} > 0 )) || die "At least one --input path is required."
+case "${RUN_MODE}" in
+  version|replace) ;;
+  *) die "--mode must be version or replace." ;;
+esac
+
+for input_path in "${INPUTS[@]}"; do
+  [[ -e "${input_path}" ]] || die "Input path does not exist: ${input_path}"
+done
+
+RESOLVED_INPUTS=()
+for input_path in "${INPUTS[@]}"; do
+  RESOLVED_INPUTS+=("$(absolute_existing_path "${input_path}")")
+done
+
+if [[ "${OUTPUT_ROOT}" != /* ]]; then
+  OUTPUT_ROOT="${CALLER_DIR}/${OUTPUT_ROOT}"
+fi
+
+Rscript --vanilla "${REPO_ROOT}/scripts/check_runtime.R" >/dev/null
+
+PROJECT_SLUG="$(slugify "${PROJECT_NAME}")"
+RUN_ID="$(date -u '+%Y-%m-%dT%H%M%SZ')"
+PROJECT_DIR="${OUTPUT_ROOT}/${PROJECT_SLUG}"
+VERSIONS_DIR="${PROJECT_DIR}/versions"
+VERSION_DIR="${VERSIONS_DIR}/${RUN_ID}"
+CURRENT_LINK="${PROJECT_DIR}/current"
+CURRENT_POINTER="${PROJECT_DIR}/current.txt"
+HISTORY_FILE="${PROJECT_DIR}/run_history.csv"
+PROJECT_METADATA_FILE="${PROJECT_DIR}/project_metadata.yml"
+
+if [[ "${INTERACTIVE}" == "true" ]]; then
+  configure_project_metadata
+fi
+
+counter=1
+while [[ -e "${VERSION_DIR}" ]]; do
+  RUN_ID="$(date -u '+%Y-%m-%dT%H%M%SZ')-$(printf '%02d' "${counter}")"
+  VERSION_DIR="${VERSIONS_DIR}/${RUN_ID}"
+  counter=$((counter + 1))
+done
+
+PIPELINE_COMMAND=(
+  Rscript --vanilla scripts/run_pipeline.R
+  --pipeline data_dictionary
+)
+for input_path in "${RESOLVED_INPUTS[@]}"; do
+  PIPELINE_COMMAND+=(--input "${input_path}")
+done
+
+CUSTOM_CONFIG_PROVIDED="false"
+if (( ${#PIPELINE_ARGS[@]} > 0 )); then
+  for pipeline_arg in "${PIPELINE_ARGS[@]}"; do
+    case "${pipeline_arg}" in
+      --config|--config=*) CUSTOM_CONFIG_PROVIDED="true" ;;
+    esac
+  done
+fi
+if [[ -f "${PROJECT_METADATA_FILE}" && "${CUSTOM_CONFIG_PROVIDED}" == "false" ]]; then
+  PIPELINE_COMMAND+=(--config "${PROJECT_METADATA_FILE}")
+elif [[ -f "${PROJECT_METADATA_FILE}" && "${CUSTOM_CONFIG_PROVIDED}" == "true" ]]; then
+  echo "[WARN] A custom --config was supplied; it takes precedence over the saved project metadata profile."
+fi
+
+PIPELINE_COMMAND+=(
+  --output "${VERSION_DIR}"
+  --project-name "${PROJECT_NAME}"
+  --run-comment "${RUN_COMMENT}"
+  --overwrite false
+)
+if (( ${#PIPELINE_ARGS[@]} > 0 )); then
+  PIPELINE_COMMAND+=("${PIPELINE_ARGS[@]}")
+fi
+
+echo "[INFO] Project: ${PROJECT_NAME}"
+echo "[INFO] Run ID: ${RUN_ID}"
+echo "[INFO] Mode: ${RUN_MODE}"
+echo "[INFO] Planned output: ${VERSION_DIR}"
+
+if [[ "${DRY_RUN}" == "true" ]]; then
+  echo "[DRY RUN] No directories or files will be created."
+  echo "[DRY RUN] Pipeline command:"
+  print_command "${PIPELINE_COMMAND[@]}"
+  echo "Changed: nothing (dry run)."
+  echo "Next command: rerun without --dry-run when the paths and mode are correct."
+  exit 0
+fi
+
+echo "[INFO] Creating project output directories."
+mkdir -p "${VERSIONS_DIR}"
+
+echo "[INFO] Running the local R pipeline."
+if ! (cd -P -- "${REPO_ROOT}" && "${PIPELINE_COMMAND[@]}"); then
+  echo "[ERROR] Pipeline failed. Any partial output remains at: ${VERSION_DIR}" >&2
+  exit 1
+fi
+
+required_artifacts=(
+  "data_dictionary.xlsx"
+  "data_dictionary.json"
+  "metadata.xlsx"
+  "metadata.json"
+  "metadata_report.html"
+  "open_science_metadata_report.html"
+  "artifact_manifest.csv"
+)
+for artifact in "${required_artifacts[@]}"; do
+  [[ -s "${VERSION_DIR}/${artifact}" ]] || die "Verification failed; missing or empty artifact: ${VERSION_DIR}/${artifact}"
+done
+
+BECAME_CURRENT="false"
+HAS_CURRENT="false"
+if [[ -e "${CURRENT_LINK}" || -L "${CURRENT_LINK}" || -f "${CURRENT_POINTER}" ]]; then
+  HAS_CURRENT="true"
+fi
+
+if [[ "${HAS_CURRENT}" == "false" ]]; then
+  echo "[INFO] No current version exists; promoting this first run."
+  ln -s "versions/${RUN_ID}" "${CURRENT_LINK}"
+  printf '%s\n' "versions/${RUN_ID}" > "${CURRENT_POINTER}"
+  BECAME_CURRENT="true"
+elif [[ "${RUN_MODE}" == "replace" ]]; then
+  if [[ -e "${CURRENT_LINK}" || -L "${CURRENT_LINK}" ]]; then
+    [[ -L "${CURRENT_LINK}" ]] || die "Refusing to replace a non-symlink current path: ${CURRENT_LINK}"
+  fi
+  echo "[INFO] Promoting the new run; the prior dated version is retained."
+  ln -sfn "versions/${RUN_ID}" "${CURRENT_LINK}"
+  printf '%s\n' "versions/${RUN_ID}" > "${CURRENT_POINTER}"
+  BECAME_CURRENT="true"
+else
+  echo "[INFO] Created a dated version; the existing current version is unchanged."
+fi
+
+if [[ ! -f "${HISTORY_FILE}" ]]; then
+  printf '%s\n' 'run_id,completed_utc,project_name,project_slug,mode,comment,version_directory,became_current' > "${HISTORY_FILE}"
+fi
+{
+  csv_escape "${RUN_ID}"
+  printf ','
+  csv_escape "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  printf ','
+  csv_escape "${PROJECT_NAME}"
+  printf ','
+  csv_escape "${PROJECT_SLUG}"
+  printf ','
+  csv_escape "${RUN_MODE}"
+  printf ','
+  csv_escape "${RUN_COMMENT}"
+  printf ','
+  csv_escape "${VERSION_DIR}"
+  printf ','
+  csv_escape "${BECAME_CURRENT}"
+  printf '\n'
+} >> "${HISTORY_FILE}"
+
+if [[ "${OPEN_REPORT}" == "true" ]]; then
+  echo "[INFO] Opening the open-science metadata report."
+  if ! open_local_report "${VERSION_DIR}/open_science_metadata_report.html"; then
+    echo "[WARN] A supported browser opener was not found. Report: ${VERSION_DIR}/open_science_metadata_report.html"
+  fi
+fi
+
+echo "Changed:"
+echo "  - Created verified run: ${VERSION_DIR}"
+echo "  - Updated history: ${HISTORY_FILE}"
+if [[ "${METADATA_PROFILE_CHANGED}" == "true" ]]; then
+  echo "  - Saved project metadata: ${PROJECT_METADATA_FILE}"
+elif [[ -f "${PROJECT_METADATA_FILE}" ]]; then
+  echo "  - Reused project metadata: ${PROJECT_METADATA_FILE}"
+fi
+if [[ "${BECAME_CURRENT}" == "true" ]]; then
+  echo "  - Current version: ${CURRENT_LINK}"
+  echo "  - Portable current pointer: ${CURRENT_POINTER}"
+else
+  echo "  - Current version left unchanged: ${CURRENT_POINTER}"
+fi
+echo "Open-science report: ${VERSION_DIR}/open_science_metadata_report.html"
+echo "Technical report: ${VERSION_DIR}/metadata_report.html"
+echo "Next command: open -a Safari \"${VERSION_DIR}/open_science_metadata_report.html\""

@@ -52,6 +52,7 @@ dictionary:
 
 metadata:
   project_name: null
+  run_comment: null
   project_description: null
   author: null
   data_owner: null

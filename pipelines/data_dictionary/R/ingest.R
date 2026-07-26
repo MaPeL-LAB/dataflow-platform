@@ -105,6 +105,270 @@ resolve_sas_catalog <- function(path, config) {
   same_stem[order(compression_rank, tolower(same_stem))][[1L]]
 }
 
+read_stata_unsigned <- function(connection, size, endian) {
+  value <- readBin(
+    connection,
+    what = integer(),
+    n = 1L,
+    size = size,
+    signed = TRUE,
+    endian = endian
+  )
+  if (length(value) != 1L) stop("Unexpected end of Stata file.", call. = FALSE)
+  if (value < 0) value <- value + 2^(8L * size)
+  as.numeric(value)
+}
+
+decode_stata_fixed_strings <- function(bytes, width, count, encoding = "latin1") {
+  if (count == 0L) return(character())
+  if (length(bytes) != width * count) {
+    stop("Stata string metadata block has an unexpected length.", call. = FALSE)
+  }
+
+  blocks <- matrix(bytes, nrow = width, ncol = count)
+  vapply(seq_len(count), function(index) {
+    value <- blocks[, index]
+    zero <- which(value == as.raw(0L))
+    if (length(zero) > 0L) value <- value[seq_len(zero[[1L]] - 1L)]
+    if (length(value) == 0L) return("")
+    text <- rawToChar(value)
+    converted <- suppressWarnings(iconv(text, from = encoding, to = "UTF-8", sub = "byte"))
+    if (is.na(converted)) text else converted
+  }, character(1L))
+}
+
+inspect_stata_legacy_layout <- function(path, encoding = "latin1") {
+  connection <- file(path, open = "rb")
+  on.exit(close(connection), add = TRUE)
+
+  dataset_format <- read_stata_unsigned(connection, 1L, "little")
+  byte_order <- read_stata_unsigned(connection, 1L, "little")
+  file_type <- read_stata_unsigned(connection, 1L, "little")
+  read_stata_unsigned(connection, 1L, "little")
+
+  if (!(dataset_format %in% c(114, 115))) {
+    stop(
+      "Base-R recovery supports legacy Stata formats 114 and 115 only; detected format ",
+      dataset_format, ".",
+      call. = FALSE
+    )
+  }
+  if (!(byte_order %in% c(1, 2))) stop("Unrecognized Stata byte order.", call. = FALSE)
+  if (file_type != 1) stop("Unsupported Stata file type.", call. = FALSE)
+  endian <- if (byte_order == 1) "big" else "little"
+
+  variable_count <- as.integer(read_stata_unsigned(connection, 2L, endian))
+  observation_count <- read_stata_unsigned(connection, 4L, endian)
+  if (variable_count < 1L || observation_count < 0) {
+    stop("Invalid Stata dataset dimensions.", call. = FALSE)
+  }
+
+  dataset_label <- decode_stata_fixed_strings(
+    readBin(connection, raw(), n = 81L),
+    81L,
+    1L,
+    encoding
+  )[[1L]]
+  timestamp <- decode_stata_fixed_strings(
+    readBin(connection, raw(), n = 18L),
+    18L,
+    1L,
+    encoding
+  )[[1L]]
+  storage_types <- as.integer(readBin(connection, raw(), n = variable_count))
+  valid_types <- storage_types %in% c(seq_len(244L), 251:255)
+  if (length(storage_types) != variable_count || !all(valid_types)) {
+    stop("Unsupported or incomplete Stata storage-type list.", call. = FALSE)
+  }
+
+  variable_names <- decode_stata_fixed_strings(
+    readBin(connection, raw(), n = 33L * variable_count),
+    33L,
+    variable_count,
+    encoding
+  )
+  readBin(connection, raw(), n = 2L * (variable_count + 1L))
+  display_formats <- decode_stata_fixed_strings(
+    readBin(connection, raw(), n = 49L * variable_count),
+    49L,
+    variable_count,
+    encoding
+  )
+  value_label_names <- decode_stata_fixed_strings(
+    readBin(connection, raw(), n = 33L * variable_count),
+    33L,
+    variable_count,
+    encoding
+  )
+  variable_labels <- decode_stata_fixed_strings(
+    readBin(connection, raw(), n = 81L * variable_count),
+    81L,
+    variable_count,
+    encoding
+  )
+
+  repeat {
+    expansion_type <- read_stata_unsigned(connection, 1L, endian)
+    expansion_length <- read_stata_unsigned(connection, 4L, endian)
+    if (expansion_type == 0 && expansion_length == 0) break
+    remaining <- as.numeric(file.info(path)$size) - seek(connection, rw = "read")
+    if (expansion_length > remaining) {
+      stop("Invalid Stata expansion-field length.", call. = FALSE)
+    }
+    seek(connection, where = expansion_length, origin = "current", rw = "read")
+  }
+
+  data_start <- seek(connection, rw = "read")
+  storage_widths <- ifelse(
+    storage_types <= 244L,
+    storage_types,
+    c(`251` = 1L, `252` = 2L, `253` = 4L, `254` = 4L, `255` = 8L)[as.character(storage_types)]
+  )
+  storage_widths <- as.integer(storage_widths)
+  record_width <- sum(storage_widths)
+  data_end <- data_start + record_width * observation_count
+  file_size <- as.numeric(file.info(path)$size)
+  if (!is.finite(data_end) || data_end > file_size) {
+    stop("Stata data block extends beyond the end of the file.", call. = FALSE)
+  }
+
+  value_label_length <- NA_real_
+  if (file_size >= data_end + 4) {
+    seek(connection, where = data_end, origin = "start", rw = "read")
+    value_label_length <- read_stata_unsigned(connection, 4L, endian)
+  }
+  unexpected_trailing_payload <- isTRUE(
+    !is.na(value_label_length) &&
+      value_label_length == 0 &&
+      file_size > data_end + 4
+  )
+
+  list(
+    dataset_format = dataset_format,
+    endian = endian,
+    variable_count = variable_count,
+    observation_count = observation_count,
+    dataset_label = dataset_label,
+    timestamp = timestamp,
+    storage_types = storage_types,
+    storage_widths = storage_widths,
+    variable_names = variable_names,
+    display_formats = display_formats,
+    value_label_names = value_label_names,
+    variable_labels = variable_labels,
+    data_start = data_start,
+    data_end = data_end,
+    record_width = record_width,
+    file_size = file_size,
+    unexpected_trailing_payload = unexpected_trailing_payload,
+    trailing_bytes = max(0, file_size - data_end)
+  )
+}
+
+read_stata_numeric_column <- function(bytes, storage_type, count, endian) {
+  if (count == 0L) return(numeric())
+  connection <- rawConnection(bytes, open = "rb")
+  on.exit(close(connection), add = TRUE)
+
+  if (storage_type == 251L) {
+    value <- readBin(connection, integer(), n = count, size = 1L, signed = TRUE, endian = endian)
+    value[value > 100L] <- NA_integer_
+    return(value)
+  }
+  if (storage_type == 252L) {
+    value <- readBin(connection, integer(), n = count, size = 2L, signed = TRUE, endian = endian)
+    value[value > 32740L] <- NA_integer_
+    return(value)
+  }
+  if (storage_type == 253L) {
+    value <- readBin(connection, integer(), n = count, size = 4L, signed = TRUE, endian = endian)
+    value[as.numeric(value) > 2147483620] <- NA_integer_
+    return(value)
+  }
+  if (storage_type == 254L) {
+    value <- readBin(connection, double(), n = count, size = 4L, endian = endian)
+    value[!is.finite(value) | value >= 1.701e38] <- NA_real_
+    return(value)
+  }
+  if (storage_type == 255L) {
+    value <- readBin(connection, double(), n = count, size = 8L, endian = endian)
+    value[!is.finite(value) | value >= 8.988e307] <- NA_real_
+    return(value)
+  }
+  stop("Unsupported numeric Stata storage type: ", storage_type, call. = FALSE)
+}
+
+read_stata_legacy_recovery <- function(path, config, layout = NULL) {
+  encoding <- as.character(config$input$haven_encoding %||% "latin1")[[1L]]
+  layout <- layout %||% inspect_stata_legacy_layout(path, encoding)
+  n_max <- config$input$n_max %||% Inf
+  rows_to_read <- if (is.null(n_max) || is.na(n_max) || is.infinite(n_max)) {
+    layout$observation_count
+  } else {
+    min(layout$observation_count, max(0, as.integer(n_max)))
+  }
+  rows_to_read <- as.integer(rows_to_read)
+
+  connection <- file(path, open = "rb")
+  on.exit(close(connection), add = TRUE)
+  seek(connection, where = layout$data_start, origin = "start", rw = "read")
+  data_size <- layout$record_width * rows_to_read
+  data_bytes <- readBin(connection, raw(), n = data_size)
+  if (length(data_bytes) != data_size) {
+    stop("Could not read the complete valid Stata data block.", call. = FALSE)
+  }
+
+  offsets <- c(0L, head(cumsum(layout$storage_widths), -1L))
+  columns <- vector("list", layout$variable_count)
+  for (index in seq_len(layout$variable_count)) {
+    width <- layout$storage_widths[[index]]
+    starts <- 1 + offsets[[index]] + (seq_len(rows_to_read) - 1L) * layout$record_width
+    byte_indices <- as.vector(t(outer(starts, seq.int(0L, width - 1L), `+`)))
+    column_bytes <- data_bytes[byte_indices]
+    storage_type <- layout$storage_types[[index]]
+
+    if (storage_type <= 244L) {
+      value <- decode_stata_fixed_strings(column_bytes, width, rows_to_read, encoding)
+    } else {
+      value <- read_stata_numeric_column(column_bytes, storage_type, rows_to_read, layout$endian)
+    }
+
+    if (nzchar(layout$variable_labels[[index]])) {
+      attr(value, "label") <- layout$variable_labels[[index]]
+    }
+    if (nzchar(layout$display_formats[[index]])) {
+      attr(value, "format.stata") <- layout$display_formats[[index]]
+    }
+    if (nzchar(layout$value_label_names[[index]])) {
+      attr(value, "label.table") <- layout$value_label_names[[index]]
+    }
+    columns[[index]] <- value
+  }
+
+  variable_names <- layout$variable_names
+  blank_names <- !nzchar(variable_names)
+  variable_names[blank_names] <- paste0("variable_", which(blank_names))
+  names(columns) <- variable_names
+  data <- as.data.frame(columns, stringsAsFactors = FALSE, check.names = FALSE, optional = TRUE)
+  if (nzchar(layout$dataset_label)) attr(data, "label") <- layout$dataset_label
+
+  note <- paste0(
+    "Recovered the valid legacy Stata ", layout$dataset_format,
+    " data block with the base-R safety reader after detecting an unsafe or crashed native import. ",
+    "Raw coded values, variable labels, and display formats were retained. Value-label mappings ",
+    "from the malformed trailing region were not imported and require source-file review."
+  )
+  list(make_dataset_record(
+    data = data,
+    path = path,
+    source_format = "dta",
+    dataset_name = source_stem(path),
+    import_notes = note,
+    reader_package = "base R",
+    reader_function = "read_stata_legacy_recovery"
+  ))
+}
+
 read_haven_source <- function(path, format, config) {
   require_package("haven", paste(format, "input"))
   n_max <- config$input$n_max %||% Inf
@@ -168,6 +432,75 @@ read_haven_source <- function(path, format, config) {
     reader_package = "haven",
     reader_function = reader_function
   ))
+}
+
+read_haven_source_isolated <- function(path, format, config) {
+  legacy_layout <- NULL
+  if (identical(format, "dta")) {
+    legacy_layout <- tryCatch(
+      inspect_stata_legacy_layout(
+        path,
+        as.character(config$input$haven_encoding %||% "latin1")[[1L]]
+      ),
+      error = function(error) NULL
+    )
+    if (!is.null(legacy_layout) && isTRUE(legacy_layout$unexpected_trailing_payload)) {
+      log_warn(
+        "Detected ", format(legacy_layout$trailing_bytes, big.mark = ",", scientific = FALSE),
+        " trailing byte(s) after an empty Stata value-label terminator; using the base-R safety reader."
+      )
+      return(read_stata_legacy_recovery(path, config, legacy_layout))
+    }
+  }
+
+  repo_root <- find_repo_root(getwd())
+  worker_script <- file.path(repo_root, "scripts", "read_haven_worker.R")
+  if (!file.exists(worker_script)) stop("Haven worker script not found: ", worker_script, call. = FALSE)
+
+  config_path <- tempfile(pattern = "dataflow-haven-config-", fileext = ".rds")
+  result_path <- tempfile(pattern = "dataflow-haven-result-", fileext = ".rds")
+  log_path <- tempfile(pattern = "dataflow-haven-log-", fileext = ".log")
+  on.exit(unlink(c(config_path, result_path, log_path), force = TRUE), add = TRUE)
+  saveRDS(config, config_path)
+
+  old_directory <- getwd()
+  on.exit(setwd(old_directory), add = TRUE)
+  setwd(repo_root)
+  arguments <- c(
+    "--vanilla",
+    file.path("scripts", "read_haven_worker.R"),
+    "--input", normalizePath(path, winslash = "/", mustWork = TRUE),
+    "--format", format,
+    "--config", config_path,
+    "--result", result_path
+  )
+  status <- suppressWarnings(system2(
+    file.path(R.home("bin"), "Rscript"),
+    args = vapply(arguments, shQuote, character(1L)),
+    stdout = log_path,
+    stderr = log_path
+  ))
+
+  if (identical(as.integer(status), 0L) && file.exists(result_path)) {
+    return(readRDS(result_path))
+  }
+
+  if (identical(format, "dta") && !is.null(legacy_layout)) {
+    log_warn(
+      "The isolated Haven Stata reader exited with status ", as.integer(status),
+      "; continuing with the base-R legacy safety reader."
+    )
+    return(read_stata_legacy_recovery(path, config, legacy_layout))
+  }
+
+  worker_log <- if (file.exists(log_path)) readLines(log_path, warn = FALSE) else character()
+  worker_message <- paste(tail(worker_log[nzchar(worker_log)], 8L), collapse = " ")
+  if (!nzchar(worker_message)) worker_message <- "No worker diagnostics were produced."
+  stop(
+    "The isolated ", format, " reader failed with status ", as.integer(status),
+    ". ", worker_message,
+    call. = FALSE
+  )
 }
 
 read_rds_source <- function(path, config) {
@@ -348,12 +681,12 @@ read_source_file <- function(path, config) {
     txt = read_delimited_source(path, format, config),
     xls = read_excel_source(path, format, config),
     xlsx = read_excel_source(path, format, config),
-    dta = read_haven_source(path, format, config),
-    sas7bdat = read_haven_source(path, format, config),
-    xpt = read_haven_source(path, format, config),
-    sav = read_haven_source(path, format, config),
-    zsav = read_haven_source(path, format, config),
-    por = read_haven_source(path, format, config),
+    dta = read_haven_source_isolated(path, format, config),
+    sas7bdat = read_haven_source_isolated(path, format, config),
+    xpt = read_haven_source_isolated(path, format, config),
+    sav = read_haven_source_isolated(path, format, config),
+    zsav = read_haven_source_isolated(path, format, config),
+    por = read_haven_source_isolated(path, format, config),
     rds = read_rds_source(path, config),
     rdata = read_rdata_source(path, config),
     json = read_json_source(path, format, config),

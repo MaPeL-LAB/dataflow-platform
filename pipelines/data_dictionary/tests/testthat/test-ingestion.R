@@ -61,6 +61,35 @@ testthat::test_that("haven package examples ingest Stata, SAS, and SPSS", {
   }
 })
 
+testthat::test_that("legacy Stata trailing corruption uses the base-R safety reader", {
+  testthat::skip_if_not_installed("haven")
+  path <- tempfile(fileext = ".dta")
+  expected <- data.frame(
+    id = c(1L, 2L, 3L),
+    status = c("A", "B", "A"),
+    amount = c(10.5, 20.5, 30.5),
+    stringsAsFactors = FALSE
+  )
+  haven::write_dta(expected, path, version = 12)
+  clean_layout <- inspect_stata_legacy_layout(path)
+  testthat::expect_false(clean_layout$unexpected_trailing_payload)
+
+  connection <- file(path, open = "r+b")
+  seek(connection, where = clean_layout$data_end, origin = "start", rw = "write")
+  truncate(connection)
+  writeBin(as.raw(c(0L, 0L, 0L, 0L, 1L, 2L, 3L, 4L)), connection)
+  close(connection)
+
+  corrupt_layout <- inspect_stata_legacy_layout(path)
+  testthat::expect_true(corrupt_layout$unexpected_trailing_payload)
+  records <- read_source_file(path, test_config())
+  testthat::expect_length(records, 1L)
+  testthat::expect_equal(records[[1L]]$reader_function, "read_stata_legacy_recovery")
+  testthat::expect_equal(as.integer(records[[1L]]$data$id), expected$id)
+  testthat::expect_equal(as.character(records[[1L]]$data$status), expected$status)
+  testthat::expect_equal(as.numeric(records[[1L]]$data$amount), expected$amount)
+})
+
 testthat::test_that("SAS transport input is ingested", {
   testthat::skip_if_not_installed("haven")
   path <- tempfile(fileext = ".xpt")
