@@ -22,9 +22,31 @@ jobs:
         run: |
           set -euo pipefail
           archive="$RUNNER_TEMP/dataflow-platform-v0.2.0.tar.xz"
-          cat .release/payload.part* | base64 --decode > "$archive"
-          sha256sum "$archive"
-          tar -tJf "$archive" >/dev/null
+          ARCHIVE="$archive" python3 - <<'PY'
+          import base64
+          import hashlib
+          import os
+          import tarfile
+          from pathlib import Path
+
+          parts = [Path(".release") / f"payload.part{i:02d}" for i in range(7)]
+          encoded = b"".join(part.read_bytes().strip() for part in parts)
+          raw = base64.b64decode(encoded, validate=True)
+          archive = Path(os.environ["ARCHIVE"])
+          archive.write_bytes(raw)
+          digest = hashlib.sha256(raw).hexdigest()
+          expected = "08b5253d759353415b412343d1ba353365ec5f674fd6228c9047851c69ede113"
+          print(f"archive_bytes={len(raw)} sha256={digest}")
+          if digest != expected:
+              raise SystemExit(f"release archive checksum mismatch: expected {expected}")
+          with tarfile.open(archive, mode="r:xz") as bundle:
+              names = set(bundle.getnames())
+          required = {"DESCRIPTION", "README.md", "scripts/run_pipeline.R"}
+          missing = sorted(required - names)
+          if missing:
+              raise SystemExit(f"release archive is missing required files: {missing}")
+          print(f"validated_archive_members={len(names)}")
+          PY
       - name: Materialize normal repository tree
         shell: bash
         run: |
