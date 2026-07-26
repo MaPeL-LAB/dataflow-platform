@@ -38,8 +38,12 @@ testthat::test_that("readxl package examples cover both XLS and XLSX dispatch", 
   for (example_name in c("datasets.xls", "datasets.xlsx")) {
     path <- readxl::readxl_example(example_name)
     testthat::skip_if(!nzchar(path) || !file.exists(path), paste("Missing readxl example", example_name))
-    records <- read_source_file(path, test_config(list(input = list(excel_sheets = "iris"))))
+    sheets <- readxl::excel_sheets(path)
+    testthat::expect_gt(length(sheets), 0L)
+    selected_sheet <- sheets[[1L]]
+    records <- read_source_file(path, test_config(list(input = list(excel_sheets = selected_sheet))))
     testthat::expect_length(records, 1L)
+    testthat::expect_identical(records[[1L]]$source_sheet, selected_sheet)
     testthat::expect_gt(nrow(records[[1L]]$data), 0L)
   }
 })
@@ -52,8 +56,8 @@ testthat::test_that("haven package examples ingest Stata, SAS, and SPSS", {
     path <- system.file("examples", examples[[format]], package = "haven")
     if (!nzchar(path) || !file.exists(path)) next
     records <- read_source_file(path, test_config())
-    testthat::expect_length(records, 1L, info = format)
-    testthat::expect_gt(nrow(records[[1L]]$data), 0L, info = format)
+    testthat::expect_length(records, 1L)
+    testthat::expect_gt(nrow(records[[1L]]$data), 0L)
   }
 })
 
