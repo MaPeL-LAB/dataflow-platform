@@ -1,0 +1,45 @@
+input:
+  recursive: false
+  include_hidden: false
+  excel_sheets: all
+  continue_on_error: true
+  auto_sas_catalog: true
+  allow_unsafe_pickle: false
+
+profiling:
+  max_categorical_levels: 10
+  max_categorical_ratio: 1.0
+  high_missingness_threshold: 0.40
+  sample_values: 5
+
+dictionary:
+  inline_max_values: 10
+  preview_values: 5
+  use_variable_label_as_definition: true
+  flag_missing_definitions: true
+  include_inferred_validation_rules: true
+
+metadata:
+  project_name: Example heterogeneous-data inventory
+  project_description: Demonstrates separate data-dictionary and metadata products.
+  author: Data Engineering
+  data_owner: Analytics
+  data_steward: Data Governance
+  source_system: Mixed source files
+  access_classification: Internal
+  access_permissions: Approved project team
+  license: Internal use
+  tags: [example, dictionary, metadata]
+
+privacy:
+  include_examples: true
+  mask_potential_identifiers: true
+  mask_potential_sensitive: true
+
+output:
+  overwrite: true
+  write_csv: true
+  write_json: true
+  write_excel: true
+  write_html: true
+  write_legacy_variable_dictionary: true

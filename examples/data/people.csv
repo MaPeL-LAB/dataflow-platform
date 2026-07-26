@@ -1,0 +1,16 @@
+person_id,person_name,status,region,score,comment,email
+P0001,Example Person 01,active,Gauteng,3.5,Free-form observation number 1; this text is intentionally different for profiling.,person01@example.org
+P0002,Example Person 02,inactive,Western Cape,7.0,Free-form observation number 2; this text is intentionally different for profiling.,person02@example.org
+P0003,Example Person 03,pending,KwaZulu-Natal,10.5,Free-form observation number 3; this text is intentionally different for profiling.,person03@example.org
+P0004,Example Person 04,active,Gauteng,14.0,Free-form observation number 4; this text is intentionally different for profiling.,person04@example.org
+P0005,Example Person 05,inactive,Western Cape,17.5,Free-form observation number 5; this text is intentionally different for profiling.,person05@example.org
+P0006,Example Person 06,pending,KwaZulu-Natal,21.0,Free-form observation number 6; this text is intentionally different for profiling.,person06@example.org
+P0007,Example Person 07,active,Gauteng,24.5,Free-form observation number 7; this text is intentionally different for profiling.,person07@example.org
+P0008,Example Person 08,inactive,Western Cape,28.0,Free-form observation number 8; this text is intentionally different for profiling.,person08@example.org
+P0009,Example Person 09,pending,KwaZulu-Natal,31.5,Free-form observation number 9; this text is intentionally different for profiling.,person09@example.org
+P0010,Example Person 10,active,Gauteng,35.0,Free-form observation number 10; this text is intentionally different for profiling.,person10@example.org
+P0011,Example Person 11,inactive,Western Cape,38.5,Free-form observation number 11; this text is intentionally different for profiling.,person11@example.org
+P0012,Example Person 12,pending,KwaZulu-Natal,42.0,Free-form observation number 12; this text is intentionally different for profiling.,person12@example.org
+P0013,Example Person 13,active,Gauteng,45.5,Free-form observation number 13; this text is intentionally different for profiling.,
+P0014,Example Person 14,inactive,Western Cape,49.0,Free-form observation number 14; this text is intentionally different for profiling.,
+P0015,Example Person 15,pending,KwaZulu-Natal,52.5,Free-form observation number 15; this text is intentionally different for profiling.,

@@ -1,0 +1,6 @@
+pipeline:
+  name: replace_me
+  version: 0.1.0
+
+output:
+  overwrite: false

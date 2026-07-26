@@ -1,0 +1,11 @@
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+renv/library/
+renv/staging/
+outputs/*
+!outputs/.gitkeep
+*.log
+.DS_Store
+Thumbs.db

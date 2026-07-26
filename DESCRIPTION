@@ -1,0 +1,24 @@
+Package: datapipelines
+Type: Project
+Title: Extensible Data Pipeline Repository
+Version: 0.2.0
+Authors@R: person("Repository", "Contributors", role = c("aut", "cre"), email = "maintainers@example.org")
+Description: A repository-oriented framework for registering and running reusable
+    data pipelines. The initial pipeline creates separate, comprehensive data
+    dictionaries and metadata bundles from common statistical, spreadsheet, R, JSON, and
+    Python-oriented data formats.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports:
+    haven,
+    jsonlite,
+    openxlsx,
+    readr,
+    readxl,
+    yaml
+Suggests:
+    arrow,
+    reticulate,
+    testthat
