@@ -156,7 +156,8 @@ prepare_output_directory <- function(output_dir, overwrite = FALSE) {
         c(
           "csv", "metadata_report.html", "open_science_metadata_report.html", "metadata.xlsx", "metadata.json",
           "data_dictionary.xlsx", "data_dictionary.json", "resolved_config.yml",
-          "artifact_manifest.csv"
+          "artifact_manifest.csv", "dataminima_handoff", "dataminima_handoff.zip",
+          "dataminima_disclosure_review.json"
         )
       )
       existing_artifacts <- known_artifacts[file.exists(known_artifacts) | dir.exists(known_artifacts)]
@@ -183,7 +184,7 @@ relative_artifact_path <- function(path, output_dir) {
   if (startsWith(normalized_path, prefix)) substring(normalized_path, nchar(prefix) + 1L) else basename(normalized_path)
 }
 
-export_metadata_bundle <- function(results, output_dir, config) {
+export_metadata_bundle <- function(results, output_dir, config, records = list()) {
   output_dir <- prepare_output_directory(output_dir, config$output$overwrite)
   paths <- character()
 
@@ -236,6 +237,10 @@ export_metadata_bundle <- function(results, output_dir, config) {
       write_html_report(results, file.path(output_dir, "metadata_report.html"), config),
       write_public_html_report(results, file.path(output_dir, "open_science_metadata_report.html"), config)
     )
+  }
+
+  if (isTRUE(config$dataminima_handoff$enabled)) {
+    paths <- c(paths, write_dataminima_handoff(results, records, output_dir, config))
   }
 
   normalized_paths <- normalizePath(paths, winslash = "/", mustWork = TRUE)

@@ -294,7 +294,7 @@ run_data_dictionary_pipeline <- function(inputs, output_dir, default_config_path
   supported_formats <- supported_formats_table()
   table_catalog <- output_table_catalog()
 
-  packages <- c("yaml", "readr", "readxl", "haven", "jsonlite", "openxlsx", "arrow", "reticulate")
+  packages <- c("yaml", "readr", "readxl", "haven", "jsonlite", "jsonvalidate", "openxlsx", "openssl", "zip", "arrow", "reticulate")
   package_versions <- paste(
     paste0(packages, "=", vapply(packages, package_version_safe, character(1L))),
     collapse = "; "
@@ -355,7 +355,7 @@ run_data_dictionary_pipeline <- function(inputs, output_dir, default_config_path
     errors = errors_frame
   )
 
-  artifacts <- export_metadata_bundle(results, output_dir, config)
+  artifacts <- export_metadata_bundle(results, output_dir, config, records = records)
   log_info("Created ", length(artifacts), " artifact(s) in ", normalizePath(output_dir, winslash = "/", mustWork = TRUE))
 
   invisible(list(results = results, artifacts = artifacts, config = config))

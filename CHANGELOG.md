@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added the opt-in DataMinima handoff contract `1.0` producer for DataFlow `0.2.0`.
+- Added strict six-artifact ZIP creation, SHA-256 manifests, canonical configuration identity, and vendored schema validation.
+- Added allowlisted distribution, conditional-missingness, relationship, dependency, temporal, and quality evidence.
+- Added minimum-cell suppression, precision controls, sensitive/prohibited-statistic exclusions, and disclosure-review approval gating.
+- Added a generated-only deterministic fixture builder and actual DataMinima qualifier integration test.
+
 ## 0.2.0 - 2026-07-24
 
 - Separated the data dictionary from the broader metadata package conceptually and in generated files.

@@ -1,0 +1,31 @@
+dataminima_handoff:
+  enabled: true
+  schema_version: "1.0"
+  review_status:
+    data_dictionary: proposed
+    statistical_profile: observed
+    generation_profile: proposed
+    categorical_levels: observed
+    quality_baseline: observed
+  instruction_status: proposed
+  profiles:
+    numeric_fields: []
+    quantiles: [0, 0.25, 0.5, 0.75, 1]
+    histogram_bins: 10
+    conditional_missingness: []
+    relationships: []
+    dependencies: []
+    temporal: []
+    invalid_value_rules: []
+  aggregate_privacy:
+    policy_version: "1.0"
+    minimum_cell_size: 5
+    precision_digits: 6
+    sensitive_fields: []
+    prohibited_statistics: []
+    review:
+      reviewer: null
+      reviewed_at: null
+      decision: pending
+      findings: []
+      residual_limitations: []

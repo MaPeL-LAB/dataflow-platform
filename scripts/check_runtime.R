@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-required <- c("yaml", "readr", "readxl", "haven", "jsonlite", "openxlsx")
+required <- c("yaml", "readr", "readxl", "haven", "jsonlite", "jsonvalidate", "openxlsx", "openssl", "zip")
 missing <- required[
   !vapply(required, requireNamespace, quietly = TRUE, FUN.VALUE = logical(1L))
 ]

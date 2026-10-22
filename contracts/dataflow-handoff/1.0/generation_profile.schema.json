@@ -1,0 +1,713 @@
+{
+  "$defs": {
+    "CategoricalConditionalDependencyInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "default_probabilities": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Default Probabilities",
+          "type": "object"
+        },
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Fields",
+          "type": "array"
+        },
+        "probabilities": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          "minProperties": 1,
+          "title": "Probabilities",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "categorical_conditional",
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy",
+        "fields",
+        "probabilities",
+        "status"
+      ],
+      "title": "CategoricalConditionalDependencyInstruction",
+      "type": "object"
+    },
+    "DataFlowSource": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Configuration Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "pipeline": {
+          "const": "data_dictionary",
+          "title": "Pipeline",
+          "type": "string"
+        },
+        "pipeline_version": {
+          "const": "0.2.0",
+          "title": "Pipeline Version",
+          "type": "string"
+        },
+        "product": {
+          "const": "dataflow",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_version": {
+          "const": "0.2.0",
+          "title": "Product Version",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "product_version",
+        "pipeline",
+        "pipeline_version",
+        "configuration_sha256",
+        "run_id",
+        "created_at"
+      ],
+      "title": "DataFlowSource",
+      "type": "object"
+    },
+    "DistributionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Family",
+          "type": "string"
+        },
+        "histogram": {
+          "items": {
+            "$ref": "#/$defs/HistogramBin"
+          },
+          "title": "Histogram",
+          "type": "array"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "quantiles": {
+          "items": {
+            "$ref": "#/$defs/QuantileEvidence"
+          },
+          "title": "Quantiles",
+          "type": "array"
+        },
+        "skewness": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skewness"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "zero_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zero Fraction"
+        }
+      },
+      "required": [
+        "family",
+        "status"
+      ],
+      "title": "DistributionEvidence",
+      "type": "object"
+    },
+    "DistributionInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Family",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family",
+        "parameters",
+        "status"
+      ],
+      "title": "DistributionInstruction",
+      "type": "object"
+    },
+    "FieldGenerationInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "category_probabilities": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Category Probabilities",
+          "type": "object"
+        },
+        "distribution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistributionInstruction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "missingness": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MissingnessInstruction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "FieldGenerationInstruction",
+      "type": "object"
+    },
+    "HistogramBin": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower",
+        "upper",
+        "count"
+      ],
+      "title": "HistogramBin",
+      "type": "object"
+    },
+    "MissingnessInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "conditional_on": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Conditional On",
+          "type": "array"
+        },
+        "conditional_rates": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Conditional Rates",
+          "type": "object"
+        },
+        "default_rate": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Rate"
+        },
+        "rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Rate",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rate",
+        "status"
+      ],
+      "title": "MissingnessInstruction",
+      "type": "object"
+    },
+    "MonotonicTemporalInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Field",
+          "type": "string"
+        },
+        "group_by_field": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group By Field"
+        },
+        "interval_distribution": {
+          "$ref": "#/$defs/DistributionInstruction"
+        },
+        "interval_unit": {
+          "default": "days",
+          "enum": [
+            "seconds",
+            "minutes",
+            "hours",
+            "days"
+          ],
+          "title": "Interval Unit",
+          "type": "string"
+        },
+        "maximum": {
+          "format": "date-time",
+          "title": "Maximum",
+          "type": "string"
+        },
+        "minimum": {
+          "format": "date-time",
+          "title": "Minimum",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "monotonic_intervals",
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy",
+        "field",
+        "minimum",
+        "maximum",
+        "interval_distribution",
+        "status"
+      ],
+      "title": "MonotonicTemporalInstruction",
+      "type": "object"
+    },
+    "NumericLinearDependencyInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Fields",
+          "type": "array"
+        },
+        "intercept": {
+          "default": 0,
+          "title": "Intercept",
+          "type": "number"
+        },
+        "noise_sd": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Noise Sd",
+          "type": "number"
+        },
+        "slope": {
+          "title": "Slope",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "numeric_linear",
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy",
+        "fields",
+        "slope",
+        "status"
+      ],
+      "title": "NumericLinearDependencyInstruction",
+      "type": "object"
+    },
+    "QuantileEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "probability",
+        "value"
+      ],
+      "title": "QuantileEvidence",
+      "type": "object"
+    },
+    "RelationshipStatisticalProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "child_count_distribution": {
+          "$ref": "#/$defs/DistributionEvidence"
+        },
+        "child_field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Child Field",
+          "type": "string"
+        },
+        "child_table": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Child Table",
+          "type": "string"
+        },
+        "foreign_key_coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Foreign Key Coverage",
+          "type": "number"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "parent_field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Parent Field",
+          "type": "string"
+        },
+        "parent_table": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Parent Table",
+          "type": "string"
+        },
+        "parent_unique_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Parent Unique Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "parent_table",
+        "parent_field",
+        "child_table",
+        "child_field",
+        "parent_unique_rate",
+        "foreign_key_coverage",
+        "child_count_distribution"
+      ],
+      "title": "RelationshipStatisticalProfile",
+      "type": "object"
+    },
+    "TableGenerationProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "dependencies": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "categorical_conditional": "#/$defs/CategoricalConditionalDependencyInstruction",
+                "numeric_linear": "#/$defs/NumericLinearDependencyInstruction"
+              },
+              "propertyName": "strategy"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/NumericLinearDependencyInstruction"
+              },
+              {
+                "$ref": "#/$defs/CategoricalConditionalDependencyInstruction"
+              }
+            ]
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FieldGenerationInstruction"
+          },
+          "title": "Fields",
+          "type": "object"
+        },
+        "relationships": {
+          "items": {
+            "$ref": "#/$defs/RelationshipStatisticalProfile"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "temporal": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "monotonic_intervals": "#/$defs/MonotonicTemporalInstruction",
+                "uniform_range": "#/$defs/UniformTemporalInstruction"
+              },
+              "propertyName": "strategy"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/UniformTemporalInstruction"
+              },
+              {
+                "$ref": "#/$defs/MonotonicTemporalInstruction"
+              }
+            ]
+          },
+          "title": "Temporal",
+          "type": "array"
+        }
+      },
+      "title": "TableGenerationProfile",
+      "type": "object"
+    },
+    "UniformTemporalInstruction": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Field",
+          "type": "string"
+        },
+        "maximum": {
+          "format": "date-time",
+          "title": "Maximum",
+          "type": "string"
+        },
+        "minimum": {
+          "format": "date-time",
+          "title": "Minimum",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "strategy": {
+          "const": "uniform_range",
+          "title": "Strategy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "strategy",
+        "field",
+        "minimum",
+        "maximum",
+        "status"
+      ],
+      "title": "UniformTemporalInstruction",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.mapellab.dev/dataminima/dataflow-handoff/1.0/generation_profile.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_schema_version": {
+      "const": "1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "artifact_type": {
+      "const": "generation_profile",
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "generation_mode": {
+      "const": "profile_guided",
+      "title": "Generation Mode",
+      "type": "string"
+    },
+    "review_status": {
+      "enum": [
+        "observed",
+        "proposed",
+        "approved",
+        "rejected",
+        "superseded"
+      ],
+      "title": "Review Status",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/DataFlowSource"
+    },
+    "tables": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TableGenerationProfile"
+      },
+      "minProperties": 1,
+      "title": "Tables",
+      "type": "object"
+    }
+  },
+  "required": [
+    "artifact_schema_version",
+    "source",
+    "review_status",
+    "artifact_type",
+    "generation_mode",
+    "tables"
+  ],
+  "title": "GenerationProfileArtifact",
+  "type": "object"
+}

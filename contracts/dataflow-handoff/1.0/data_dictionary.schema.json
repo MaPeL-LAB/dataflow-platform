@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "DataDictionaryField": {
+      "additionalProperties": false,
+      "properties": {
+        "business_definition": {
+          "default": "",
+          "title": "Business Definition",
+          "type": "string"
+        },
+        "dataset_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "definition_source": {
+          "default": "",
+          "title": "Definition Source",
+          "type": "string"
+        },
+        "documentation_status": {
+          "default": "",
+          "title": "Documentation Status",
+          "type": "string"
+        },
+        "inferred_validation_rules": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Inferred Validation Rules",
+          "type": "array"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "nullable_observed": {
+          "title": "Nullable Observed",
+          "type": "boolean"
+        },
+        "potential_identifier": {
+          "default": false,
+          "title": "Potential Identifier",
+          "type": "boolean"
+        },
+        "potential_sensitive": {
+          "default": false,
+          "title": "Potential Sensitive",
+          "type": "boolean"
+        },
+        "review_reason": {
+          "default": "",
+          "title": "Review Reason",
+          "type": "string"
+        },
+        "review_required": {
+          "default": false,
+          "title": "Review Required",
+          "type": "boolean"
+        },
+        "semantic_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Semantic Type",
+          "type": "string"
+        },
+        "source_display_format": {
+          "default": "",
+          "title": "Source Display Format",
+          "type": "string"
+        },
+        "storage_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Storage Type",
+          "type": "string"
+        },
+        "technical_definition": {
+          "default": "",
+          "title": "Technical Definition",
+          "type": "string"
+        },
+        "type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Type",
+          "type": "string"
+        },
+        "units": {
+          "default": "",
+          "title": "Units",
+          "type": "string"
+        },
+        "value_domain_status": {
+          "default": "not enumerated",
+          "title": "Value Domain Status",
+          "type": "string"
+        },
+        "variable": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Variable",
+          "type": "string"
+        },
+        "variable_position": {
+          "minimum": 1,
+          "title": "Variable Position",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "dataset_id",
+        "variable_position",
+        "variable",
+        "type",
+        "storage_type",
+        "semantic_type",
+        "nullable_observed"
+      ],
+      "title": "DataDictionaryField",
+      "type": "object"
+    },
+    "DataFlowSource": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Configuration Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "pipeline": {
+          "const": "data_dictionary",
+          "title": "Pipeline",
+          "type": "string"
+        },
+        "pipeline_version": {
+          "const": "0.2.0",
+          "title": "Pipeline Version",
+          "type": "string"
+        },
+        "product": {
+          "const": "dataflow",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_version": {
+          "const": "0.2.0",
+          "title": "Product Version",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "product_version",
+        "pipeline",
+        "pipeline_version",
+        "configuration_sha256",
+        "run_id",
+        "created_at"
+      ],
+      "title": "DataFlowSource",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.mapellab.dev/dataminima/dataflow-handoff/1.0/data_dictionary.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_schema_version": {
+      "const": "1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "artifact_type": {
+      "const": "data_dictionary",
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "fields": {
+      "items": {
+        "$ref": "#/$defs/DataDictionaryField"
+      },
+      "minItems": 1,
+      "title": "Fields",
+      "type": "array"
+    },
+    "review_status": {
+      "enum": [
+        "observed",
+        "proposed",
+        "approved",
+        "rejected",
+        "superseded"
+      ],
+      "title": "Review Status",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/DataFlowSource"
+    }
+  },
+  "required": [
+    "artifact_schema_version",
+    "source",
+    "review_status",
+    "artifact_type",
+    "fields"
+  ],
+  "title": "DataDictionaryArtifact",
+  "type": "object"
+}

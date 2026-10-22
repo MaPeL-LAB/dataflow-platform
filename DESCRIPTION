@@ -14,10 +14,13 @@ Depends:
 Imports:
     haven,
     jsonlite,
+    jsonvalidate,
     openxlsx,
+    openssl,
     readr,
     readxl,
-    yaml
+    yaml,
+    zip
 Suggests:
     arrow,
     reticulate,

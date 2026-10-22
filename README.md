@@ -28,6 +28,7 @@ data-pipeline-suite/
 │       │   ├── profile.R            # technical metadata
 │       │   ├── dictionary.R         # analyst-facing dictionary + func_dictionary()
 │       │   ├── report.R
+│       │   ├── handoff.R            # governed DataMinima contract export
 │       │   ├── export.R
 │       │   └── pipeline.R
 │       ├── tests/testthat/
@@ -293,6 +294,65 @@ print dialog. On macOS, select **PDF → Save as PDF**; on Windows, choose
 **Print to File/PDF** option. Print styling uses A4 landscape pages, repeats
 table headers, and includes every dictionary row even when the on-screen filter
 is active.
+
+### Governed DataMinima handoff
+
+The optional `dataminima_handoff` preset creates `dataminima_handoff.zip` with
+exactly six contract `1.0` members:
+
+```text
+data_dictionary.json
+statistical_profile.json
+generation_profile.yml
+categorical_levels.csv
+quality_baseline.json
+artifact_manifest.csv
+```
+
+The five payloads are bound to DataFlow product and `data_dictionary` pipeline
+version `0.2.0`, one run identity and timezone-aware creation time, and the
+SHA-256 of the canonical resolved producer configuration. The manifest lists
+the five payloads and uses SHA-256; it does not list itself. DataFlow validates
+the generated artifacts against the vendored DataMinima schemas before it
+creates the ZIP.
+
+Enable a proposed metadata-only handoff with:
+
+```bash
+Rscript --vanilla scripts/run_pipeline.R \
+  --pipeline data_dictionary \
+  --input /approved/local/data \
+  --output /approved/local/output \
+  --config examples/config/dataminima_handoff.yml \
+  --overwrite true
+```
+
+Advanced profiles are explicitly allowlisted in YAML: numeric distributions,
+conditional missingness, reviewed relationships, numeric or categorical
+dependencies, temporal sequences, and invalid-value rules. The aggregate
+privacy policy suppresses rare categorical cells and unsafe histogram bins,
+rounds released parameters, excludes configured sensitive fields or prohibited
+statistic families, and records exclusions in `quality_baseline.json`.
+
+An approved handoff fails closed unless the configuration contains an approved
+aggregate disclosure-risk review with a reviewer and timezone-aware review
+time. The review evidence is stored beside—but never inside—the governed ZIP as
+`dataminima_disclosure_review.json`. Passing this policy is not anonymization.
+Private source paths, source hashes, record-level examples, reader diagnostics,
+filesystem ownership/permissions, credentials, and process logs are excluded.
+DataFlow remains local and does not call DataMinima, an LLM, or a network
+service during normal runs.
+
+Build the committed generated-only integration fixture with:
+
+```bash
+Rscript --vanilla scripts/build_dataminima_fixture.R \
+  --output outputs/dataminima-fixture
+```
+
+The script prints the local DataMinima qualification command when a sibling
+DataMinima development environment is available. No real or private dataset is
+used or retained by the fixture builder.
 
 ### Data dictionary contents
 

@@ -9,7 +9,7 @@ args <- parse_cli_args()
 with_optional <- as_flag(args$with_optional, FALSE)
 with_tests <- as_flag(args$ci, FALSE) || as_flag(args$with_tests, FALSE)
 
-required <- c("yaml", "readr", "readxl", "haven", "jsonlite", "openxlsx")
+required <- c("yaml", "readr", "readxl", "haven", "jsonlite", "jsonvalidate", "openxlsx", "openssl", "zip")
 optional <- c("arrow", "reticulate")
 packages <- required
 if (with_optional) packages <- c(packages, optional)

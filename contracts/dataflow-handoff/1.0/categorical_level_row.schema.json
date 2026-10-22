@@ -1,0 +1,80 @@
+{
+  "$id": "https://schemas.mapellab.dev/dataminima/dataflow-handoff/1.0/categorical_level_row.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "count": {
+      "minimum": 0,
+      "title": "Count",
+      "type": "integer"
+    },
+    "dataset_id": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+      "title": "Dataset Id",
+      "type": "string"
+    },
+    "display_value": {
+      "title": "Display Value",
+      "type": "string"
+    },
+    "is_missing": {
+      "default": false,
+      "title": "Is Missing",
+      "type": "boolean"
+    },
+    "is_other_unreported": {
+      "default": false,
+      "title": "Is Other Unreported",
+      "type": "boolean"
+    },
+    "level_order": {
+      "minimum": 1,
+      "title": "Level Order",
+      "type": "integer"
+    },
+    "percent_of_all": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Percent Of All",
+      "type": "number"
+    },
+    "percent_of_nonmissing": {
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Percent Of Nonmissing",
+      "type": "number"
+    },
+    "raw_value": {
+      "title": "Raw Value",
+      "type": "string"
+    },
+    "value_label": {
+      "default": "",
+      "title": "Value Label",
+      "type": "string"
+    },
+    "variable_name": {
+      "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+      "title": "Variable Name",
+      "type": "string"
+    },
+    "variable_position": {
+      "minimum": 1,
+      "title": "Variable Position",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "dataset_id",
+    "variable_position",
+    "variable_name",
+    "level_order",
+    "raw_value",
+    "display_value",
+    "count",
+    "percent_of_nonmissing",
+    "percent_of_all"
+  ],
+  "title": "CategoricalLevelRow",
+  "type": "object"
+}

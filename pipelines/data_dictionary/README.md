@@ -36,12 +36,36 @@ Use repeated `--input` flags for multiple files or directories. Directory scans 
 | `--inline-max-values 10` | Maximum values rendered inline before previewing |
 | `--preview-values 5` | Number of values shown in a large-domain preview |
 | `--include-examples false` | Suppress representative values |
+| `--dataminima-handoff true` | Create the governed DataMinima contract `1.0` bundle |
 | `--project-name ...` | Add descriptive metadata |
 | `--data-owner ...` | Add administrative metadata |
 | `--data-steward ...` | Add administrative metadata |
 | `--overwrite true` | Permit output in an existing nonempty directory |
 
 The complete configuration is in `config/default.yml`.
+
+## Non-interactive automation interface
+
+Automated consumers such as `hdss_pipeline` should invoke the registered R
+entrypoint directly rather than the interactive `./dataflow` project launcher.
+The pipeline merges the repository defaults, then the YAML supplied with
+`--config`, then explicit CLI overrides. Use absolute input, output, and config
+paths at orchestration boundaries.
+
+```bash
+Rscript --vanilla scripts/run_pipeline.R \
+  --pipeline data_dictionary \
+  --input "/absolute/path/to/explicitly-selected-file.rds" \
+  --output "/absolute/path/to/requested-output-directory" \
+  --config "/absolute/path/to/dataset-specific-dataminima-handoff.yml" \
+  --include-examples false \
+  --overwrite false
+```
+
+The dataset-specific YAML must enable and configure `dataminima_handoff` when
+the governed six-file bundle is required. Keep `--overwrite false` for a new
+run directory so an accidental path collision fails closed. Repeat `--input`
+only when the orchestrator intentionally selects more than one source.
 
 ## Processing stages
 
@@ -53,7 +77,8 @@ The complete configuration is in `config/default.yml`.
 6. Profile every variable and infer semantic role, measurement level, categorical eligibility, and quality/privacy signals.
 7. Build a concise data dictionary from the richer variable metadata.
 8. Flag missing business definitions and classification-review items rather than inventing domain meaning.
-9. Export separate dictionary and metadata products plus a combined HTML report.
+9. Export separate dictionary and metadata products plus internal and public HTML reports.
+10. When enabled, apply the aggregate disclosure policy, validate the exact six-artifact DataMinima handoff, and write its SHA-256 manifest and ZIP.
 
 ## Character cardinality behavior
 
@@ -86,3 +111,7 @@ It preserves `label`, `variable`, `type`, `value_label`, and `n_missing` as the 
 ## Output schemas
 
 See [`SCHEMA.md`](SCHEMA.md) and [`../../docs/data-dictionary-vs-metadata.md`](../../docs/data-dictionary-vs-metadata.md).
+The optional DataMinima schemas are vendored under
+[`../../contracts/dataflow-handoff/1.0/`](../../contracts/dataflow-handoff/1.0/),
+and a non-authoritative starter configuration is provided at
+[`../../examples/config/dataminima_handoff.yml`](../../examples/config/dataminima_handoff.yml).

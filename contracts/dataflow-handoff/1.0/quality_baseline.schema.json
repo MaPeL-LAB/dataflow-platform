@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "DataFlowSource": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Configuration Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "pipeline": {
+          "const": "data_dictionary",
+          "title": "Pipeline",
+          "type": "string"
+        },
+        "pipeline_version": {
+          "const": "0.2.0",
+          "title": "Pipeline Version",
+          "type": "string"
+        },
+        "product": {
+          "const": "dataflow",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_version": {
+          "const": "0.2.0",
+          "title": "Product Version",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "product_version",
+        "pipeline",
+        "pipeline_version",
+        "configuration_sha256",
+        "run_id",
+        "created_at"
+      ],
+      "title": "DataFlowSource",
+      "type": "object"
+    },
+    "QualityIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Dataset Id",
+          "type": "string"
+        },
+        "issue_type": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Issue Type",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Metric"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "variable_name": {
+          "default": "",
+          "title": "Variable Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset_id",
+        "severity",
+        "issue_type",
+        "message"
+      ],
+      "title": "QualityIssue",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.mapellab.dev/dataminima/dataflow-handoff/1.0/quality_baseline.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_schema_version": {
+      "const": "1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "artifact_type": {
+      "const": "quality_baseline",
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/QualityIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "review_status": {
+      "enum": [
+        "observed",
+        "proposed",
+        "approved",
+        "rejected",
+        "superseded"
+      ],
+      "title": "Review Status",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/DataFlowSource"
+    },
+    "summary": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Summary",
+      "type": "object"
+    }
+  },
+  "required": [
+    "artifact_schema_version",
+    "source",
+    "review_status",
+    "artifact_type"
+  ],
+  "title": "QualityBaselineArtifact",
+  "type": "object"
+}

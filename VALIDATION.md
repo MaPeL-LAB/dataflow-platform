@@ -28,6 +28,12 @@ The repository contains `testthat` tests for:
 - repository pipeline registration;
 - version-robust Excel and Haven package fixtures;
 - end-to-end output generation.
+- exact six-member DataMinima handoff creation and strict schema validation;
+- SHA-256 manifest, configuration, run, product, and pipeline identity;
+- numeric distributions, missingness, relationships, dependencies, temporal evidence, and quality baselines;
+- aggregate suppression, sensitive/prohibited statistic exclusions, and approved-review gating;
+- deterministic generated-fixture artifacts and changed-configuration identity; and
+- actual `dataminima qualify-dataflow-bundle` qualification when the sibling DataMinima environment is available.
 
 `.github/workflows/ci.yml` installs runtime dependencies, runs all tests, uploads the test log, and executes the full example pipeline.
 
@@ -47,6 +53,7 @@ The release also underwent the following non-runtime checks:
 ```bash
 Rscript scripts/bootstrap.R --ci --with-optional
 Rscript scripts/run_tests.R
+Rscript scripts/build_dataminima_fixture.R --output outputs/dataminima-fixture
 Rscript scripts/run_pipeline.R \
   --pipeline data_dictionary \
   --input examples/data \

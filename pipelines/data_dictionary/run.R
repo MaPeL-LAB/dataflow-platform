@@ -1,5 +1,5 @@
 pipeline_dir <- file.path(repo_root, "pipelines", "data_dictionary")
-module_files <- c("config.R", "utils.R", "ingest.R", "classify.R", "profile.R", "dictionary.R", "report.R", "export.R", "pipeline.R")
+module_files <- c("config.R", "utils.R", "ingest.R", "classify.R", "profile.R", "dictionary.R", "report.R", "handoff.R", "export.R", "pipeline.R")
 for (module in module_files) sys.source(file.path(pipeline_dir, "R", module), envir = environment())
 
 print_data_dictionary_help <- function() {
@@ -22,6 +22,7 @@ print_data_dictionary_help <- function() {
     "  --inline-max-values <number>       Inline dictionary values before previewing\n",
     "  --preview-values <number>          Values shown when an inline domain is previewed\n",
     "  --include-examples true|false       Include representative values\n",
+    "  --dataminima-handoff true|false     Create the governed six-file DataMinima bundle\n",
     "  --project-name <text>               Optional descriptive metadata\n",
     "  --run-comment <text>                Optional note explaining this run\n",
     "  --data-owner <text>                 Optional administrative metadata\n",

@@ -1,0 +1,122 @@
+{
+  "$defs": {
+    "ManifestEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "title": "Artifact",
+          "type": "string"
+        },
+        "artifact_group": {
+          "enum": [
+            "dictionary",
+            "profile",
+            "quality",
+            "control"
+          ],
+          "title": "Artifact Group",
+          "type": "string"
+        },
+        "configuration_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Configuration Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataflow_run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Dataflow Run Id",
+          "type": "string"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        },
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "review_status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved",
+            "rejected",
+            "superseded"
+          ],
+          "title": "Review Status",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "source_pipeline_version": {
+          "const": "0.2.0",
+          "title": "Source Pipeline Version",
+          "type": "string"
+        },
+        "source_product_version": {
+          "const": "0.2.0",
+          "title": "Source Product Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact",
+        "relative_path",
+        "artifact_group",
+        "media_type",
+        "schema_version",
+        "dataflow_run_id",
+        "created_at",
+        "source_product_version",
+        "source_pipeline_version",
+        "configuration_sha256",
+        "review_status",
+        "size_bytes",
+        "sha256"
+      ],
+      "title": "ManifestEntry",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.mapellab.dev/dataminima/dataflow-handoff/1.0/artifact_manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/ManifestEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "manifest_schema_version": {
+      "const": "1.0",
+      "title": "Manifest Schema Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "manifest_schema_version",
+    "entries"
+  ],
+  "title": "BundleManifestDocument",
+  "type": "object"
+}

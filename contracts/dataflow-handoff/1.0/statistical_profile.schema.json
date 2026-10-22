@@ -1,0 +1,563 @@
+{
+  "$defs": {
+    "DataFlowSource": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Configuration Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "pipeline": {
+          "const": "data_dictionary",
+          "title": "Pipeline",
+          "type": "string"
+        },
+        "pipeline_version": {
+          "const": "0.2.0",
+          "title": "Pipeline Version",
+          "type": "string"
+        },
+        "product": {
+          "const": "dataflow",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_version": {
+          "const": "0.2.0",
+          "title": "Product Version",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "product_version",
+        "pipeline",
+        "pipeline_version",
+        "configuration_sha256",
+        "run_id",
+        "created_at"
+      ],
+      "title": "DataFlowSource",
+      "type": "object"
+    },
+    "DependencyEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "fields": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Fields",
+          "type": "array"
+        },
+        "method": {
+          "enum": [
+            "pearson",
+            "spearman",
+            "cramers_v",
+            "conditional_frequency",
+            "rank_correlation"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "fields",
+        "method",
+        "status"
+      ],
+      "title": "DependencyEvidence",
+      "type": "object"
+    },
+    "DistributionEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Family",
+          "type": "string"
+        },
+        "histogram": {
+          "items": {
+            "$ref": "#/$defs/HistogramBin"
+          },
+          "title": "Histogram",
+          "type": "array"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "quantiles": {
+          "items": {
+            "$ref": "#/$defs/QuantileEvidence"
+          },
+          "title": "Quantiles",
+          "type": "array"
+        },
+        "skewness": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skewness"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "zero_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zero Fraction"
+        }
+      },
+      "required": [
+        "family",
+        "status"
+      ],
+      "title": "DistributionEvidence",
+      "type": "object"
+    },
+    "FieldStatisticalProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "distribution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistributionEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "field_name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Field Name",
+          "type": "string"
+        },
+        "missingness": {
+          "$ref": "#/$defs/MissingnessEvidence"
+        },
+        "n_missing": {
+          "minimum": 0,
+          "title": "N Missing",
+          "type": "integer"
+        },
+        "n_non_missing": {
+          "minimum": 0,
+          "title": "N Non Missing",
+          "type": "integer"
+        },
+        "n_rows": {
+          "minimum": 0,
+          "title": "N Rows",
+          "type": "integer"
+        },
+        "n_unique_non_missing": {
+          "minimum": 0,
+          "title": "N Unique Non Missing",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "field_name",
+        "n_rows",
+        "n_non_missing",
+        "n_missing",
+        "n_unique_non_missing",
+        "missingness"
+      ],
+      "title": "FieldStatisticalProfile",
+      "type": "object"
+    },
+    "HistogramBin": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower",
+        "upper",
+        "count"
+      ],
+      "title": "HistogramBin",
+      "type": "object"
+    },
+    "MissingnessEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "conditional_on": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Conditional On",
+          "type": "array"
+        },
+        "mechanism_note": {
+          "default": "",
+          "title": "Mechanism Note",
+          "type": "string"
+        },
+        "rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Rate",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rate",
+        "status"
+      ],
+      "title": "MissingnessEvidence",
+      "type": "object"
+    },
+    "QuantileEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "probability": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "probability",
+        "value"
+      ],
+      "title": "QuantileEvidence",
+      "type": "object"
+    },
+    "RelationshipStatisticalProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "child_count_distribution": {
+          "$ref": "#/$defs/DistributionEvidence"
+        },
+        "child_field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Child Field",
+          "type": "string"
+        },
+        "child_table": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Child Table",
+          "type": "string"
+        },
+        "foreign_key_coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Foreign Key Coverage",
+          "type": "number"
+        },
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "parent_field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Parent Field",
+          "type": "string"
+        },
+        "parent_table": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Parent Table",
+          "type": "string"
+        },
+        "parent_unique_rate": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Parent Unique Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "parent_table",
+        "parent_field",
+        "child_table",
+        "child_field",
+        "parent_unique_rate",
+        "foreign_key_coverage",
+        "child_count_distribution"
+      ],
+      "title": "RelationshipStatisticalProfile",
+      "type": "object"
+    },
+    "TableStatisticalProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "dependencies": {
+          "items": {
+            "$ref": "#/$defs/DependencyEvidence"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "fields": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FieldStatisticalProfile"
+          },
+          "minProperties": 1,
+          "title": "Fields",
+          "type": "object"
+        },
+        "relationships": {
+          "items": {
+            "$ref": "#/$defs/RelationshipStatisticalProfile"
+          },
+          "title": "Relationships",
+          "type": "array"
+        },
+        "row_count": {
+          "minimum": 0,
+          "title": "Row Count",
+          "type": "integer"
+        },
+        "temporal": {
+          "items": {
+            "$ref": "#/$defs/TemporalEvidence"
+          },
+          "title": "Temporal",
+          "type": "array"
+        }
+      },
+      "required": [
+        "row_count",
+        "fields"
+      ],
+      "title": "TableStatisticalProfile",
+      "type": "object"
+    },
+    "TemporalEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,127}$",
+          "title": "Field",
+          "type": "string"
+        },
+        "interval_distribution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DistributionEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "ordering_fields": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Ordering Fields",
+          "type": "array"
+        },
+        "seasonality_period": {
+          "default": "",
+          "title": "Seasonality Period",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "proposed",
+            "approved"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "status"
+      ],
+      "title": "TemporalEvidence",
+      "type": "object"
+    }
+  },
+  "$id": "https://schemas.mapellab.dev/dataminima/dataflow-handoff/1.0/statistical_profile.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_schema_version": {
+      "const": "1.0",
+      "title": "Artifact Schema Version",
+      "type": "string"
+    },
+    "artifact_type": {
+      "const": "statistical_profile",
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "review_status": {
+      "enum": [
+        "observed",
+        "proposed",
+        "approved",
+        "rejected",
+        "superseded"
+      ],
+      "title": "Review Status",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/DataFlowSource"
+    },
+    "tables": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TableStatisticalProfile"
+      },
+      "minProperties": 1,
+      "title": "Tables",
+      "type": "object"
+    }
+  },
+  "required": [
+    "artifact_schema_version",
+    "source",
+    "review_status",
+    "artifact_type",
+    "tables"
+  ],
+  "title": "StatisticalProfileArtifact",
+  "type": "object"
+}

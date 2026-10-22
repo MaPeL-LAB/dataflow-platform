@@ -1,5 +1,5 @@
 validate_data_dictionary_config <- function(config) {
-  required_sections <- c("input", "profiling", "dictionary", "metadata", "privacy", "output")
+  required_sections <- c("input", "profiling", "dictionary", "metadata", "privacy", "dataminima_handoff", "output")
   missing_sections <- setdiff(required_sections, names(config))
   if (length(missing_sections) > 0L) {
     stop("Missing configuration sections: ", paste(missing_sections, collapse = ", "), call. = FALSE)
@@ -32,6 +32,8 @@ validate_data_dictionary_config <- function(config) {
   if (as.numeric(d$preview_values) > as.numeric(d$inline_max_values)) {
     stop("dictionary.preview_values cannot exceed dictionary.inline_max_values.", call. = FALSE)
   }
+
+  validate_dataminima_handoff_config(config$dataminima_handoff)
 
   delimiter <- as.character(config$input$text_delimiter %||% "\t")
   if (length(delimiter) != 1L || nchar(delimiter, type = "chars") != 1L) {
@@ -109,6 +111,9 @@ build_cli_overrides <- function(args) {
 
   if (!is.null(args$include_examples)) {
     set_nested("privacy", "include_examples", as_flag(args$include_examples))
+  }
+  if (!is.null(args$dataminima_handoff)) {
+    set_nested("dataminima_handoff", "enabled", as_flag(args$dataminima_handoff))
   }
   if (!is.null(args$mask_potential_identifiers)) {
     set_nested("privacy", "mask_potential_identifiers", as_flag(args$mask_potential_identifiers))

@@ -96,7 +96,12 @@ split_cli_values <- function(x) {
 
 deep_merge <- function(base, override) {
   if (is.null(override)) return(base)
+  if (is.list(override) && length(override) == 0L) return(base)
   if (!is.list(base) || !is.list(override)) return(override)
+  # Unnamed lists are YAML sequences, not mappings. A sequence override must
+  # replace the base sequence so declarations are not silently discarded.
+  override_names <- names(override)
+  if (is.null(override_names) || any(!nzchar(override_names))) return(override)
 
   out <- base
   for (name in names(override)) {
